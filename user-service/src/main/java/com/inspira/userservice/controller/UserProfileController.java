@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -43,6 +45,15 @@ public class UserProfileController {
             @PathVariable String auth0Id
     ) {
         UserProfile profile = service.getByAuth0Id(auth0Id);
+        return ResponseEntity.ok(UserProfileResponse.fromEntity(profile));
+    }
+
+    @Operation(summary = "Get or create profile for the current user")
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponse> getCurrentUserProfile(
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        UserProfile profile = service.findOrCreateFromJwt(jwt);
         return ResponseEntity.ok(UserProfileResponse.fromEntity(profile));
     }
 
