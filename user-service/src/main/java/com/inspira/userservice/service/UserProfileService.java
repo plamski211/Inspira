@@ -5,6 +5,7 @@ import com.inspira.userservice.dto.UpdateUserProfileRequest;
 import com.inspira.userservice.exception.ResourceNotFoundException;
 import com.inspira.userservice.model.UserProfile;
 import com.inspira.userservice.repository.UserProfileRepository;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,5 +62,23 @@ public class UserProfileService {
         UserProfile existing = repository.findByAuth0Id(auth0Id)
                 .orElseThrow(() -> new ResourceNotFoundException("UserProfile", "auth0Id", auth0Id));
         repository.delete(existing);
+    }
+
+    /**
+     * Retrieve the profile for the user represented by the given JWT. If no profile
+     * exists, a new one is created using basic information from the token.
+     */
+    @Transactional
+    public UserProfile findOrCreateFromJwt(Jwt jwt) {
+        String auth0Id = jwt.getSubject();
+        return repository.findByAuth0Id(auth0Id).orElseGet(() -> {
+            String displayName = jwt.getClaimAsString("nickname");
+            if (displayName == null || displayName.isBlank()) {
+                displayName = jwt.getClaimAsString("name");
+            }
+            String avatarUrl = jwt.getClaimAsString("picture");
+            UserProfile profile = new UserProfile(auth0Id, displayName, null, avatarUrl, null);
+            return repository.save(profile);
+        });
     }
 }
