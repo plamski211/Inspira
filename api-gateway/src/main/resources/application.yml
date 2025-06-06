@@ -1,0 +1,62 @@
+server:
+  port: 8080
+
+spring:
+  main:
+    web-application-type: reactive
+  application:
+    name: api-gateway
+  autoconfigure:
+    exclude:
+      - org.springframework.cloud.gateway.server.mvc.GatewayServerMvcAutoConfiguration
+
+  # Comment out the OAuth2 configuration completely
+  # security:
+  #   oauth2:
+  #     resourceserver:
+  #       jwt:
+  #         issuer-uri: https://dev-1ixkzn1oh8o82jto.us.auth0.com/
+  #         audiences:
+  #           - https://api.inspira.com
+
+
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/auth/**
+          filters:
+            - PreserveHostHeader
+        - id: user-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/users/**
+          filters:
+            - StripPrefix=1
+            - PreserveHostHeader
+        - id: content-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/content/**
+          filters:
+            - PreserveHostHeader
+        - id: media-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/media/**
+          filters:
+            - PreserveHostHeader
+
+      default-filters:
+      # IMPORTANT: Remove these filters that might be stripping the Authorization header
+      # - RemoveRequestHeader=Cookie
+      # - RemoveRequestHeader=Set-Cookie
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.inspira.api_gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web.reactive: DEBUG

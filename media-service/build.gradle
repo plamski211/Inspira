@@ -1,0 +1,45 @@
+plugins {
+	id 'org.springframework.boot' version '3.2.3'
+	id 'io.spring.dependency-management' version '1.1.4'
+	id 'java'
+}
+
+group = 'com.inspira'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '17'
+
+repositories {
+	mavenCentral()
+}
+
+configurations {
+	all*.exclude group: 'commons-logging', module: 'commons-logging'
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.boot:spring-boot-starter-amqp'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'com.amazonaws:aws-java-sdk-s3:1.12.400'
+	implementation 'org.springframework.amqp:spring-amqp:3.1.0'
+	implementation 'org.springframework.amqp:spring-rabbit:3.1.0'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	runtimeOnly 'com.h2database:h2'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.amqp:spring-rabbit-test'
+	testImplementation 'org.testcontainers:junit-jupiter:1.18.3'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+bootJar {
+	enabled = true
+}
+
+jar {
+	enabled = true
+	archiveClassifier = ''
+}

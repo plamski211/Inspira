@@ -1,0 +1,20 @@
+image: docker:20.10.16
+
+services:
+  - name: docker:20.10.16-dind
+    alias: docker
+
+variables:
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_HOST: tcp://docker:2375
+  IMAGE_NAME: pngbanks/content-service
+
+stages:
+  - build_and_push
+
+build_and_push:
+  stage: build_and_push
+  script:
+    - echo "Plamski@1960" | docker login -u "pngbanks" --password-stdin
+    - docker build -t $IMAGE_NAME:latest .
+    - docker push $IMAGE_NAME:latest

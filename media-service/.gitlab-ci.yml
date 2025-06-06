@@ -1,0 +1,52 @@
+stages:
+  - build
+  - test
+  - package
+  - deploy
+
+variables:
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .gradle/wrapper
+    - .gradle/caches
+
+build:
+  stage: build
+  tags:
+    - windows
+  script:
+    - echo "🏗️ Building media-service..."
+    - chmod +x ./gradlew
+    - gradlew clean build
+
+test:
+  stage: test
+  tags:
+    - windows
+  script:
+    - echo "🧪 Running tests for media-service..."
+    - gradlew test
+
+package:
+  stage: package
+  tags:
+    - windows
+  script:
+    - echo "📦 Creating JAR..."
+    - mkdir -p dist
+    - cp build/libs/*.jar dist/media-service.jar
+  artifacts:
+    paths:
+      - dist/media-service.jar
+    expire_in: 1 hour
+
+deploy:
+  stage: deploy
+  tags:
+    - windows
+  script:
+    - echo "🚀 Deploying media-service..."
+    - java -jar dist/media-service.jar

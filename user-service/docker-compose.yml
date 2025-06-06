@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  postgres-user:
+    image: postgres:15
+    container_name: postgres-user
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: user_user
+      POSTGRES_PASSWORD: user_pw
+    volumes:
+      - postgres_user_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_user -d users"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    build: .
+    container_name: user-service
+    depends_on:
+      postgres-user:
+        condition: service_healthy
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - spring.datasource.url=jdbc:postgresql://postgres-user:5432/users
+      - spring.datasource.username=user_user
+      - spring.datasource.password=user_pw
+      - spring.security.oauth2.resourceserver.jwt.issuer-uri=https://<YOUR_DOMAIN>/
+      - spring.security.oauth2.resourceserver.jwt.audience=https://api.inspira.com
+      - cors.allowed-origins=http://localhost:3000
+      - cors.allowed-methods=GET,POST,PUT,DELETE,OPTIONS
+      - cors.allowed-headers=Authorization,Content-Type
+      - cors.max-age=3600
+
+volumes:
+  postgres_user_data:

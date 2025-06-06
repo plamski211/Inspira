@@ -1,0 +1,24 @@
+# User Service API Endpoints
+GET    /api/users                # List users
+POST   /api/users                # Create user
+GET    /api/users/{id}           # Get user details
+PUT    /api/users/{id}           # Update user
+DELETE /api/users/{id}           # Delete user
+POST   /api/auth/login           # User login
+POST   /api/auth/refresh         # Refresh token
+
+# Content Service API Endpoints
+GET    /api/content              # List content
+POST   /api/content              # Create content
+GET    /api/content/{id}         # Get content details
+PUT    /api/content/{id}         # Update content
+DELETE /api/content/{id}         # Delete content
+GET    /api/content/search       # Search content
+GET    /api/content/tags/{tag}   # Get content by tag
+
+# Media Service API Endpoints
+POST   /api/media/upload         # Upload media
+GET    /api/media/{id}           # Get media details
+DELETE /api/media/{id}           # Delete media
+POST   /api/media/{id}/process   # Process media (resize, etc.)
+GET    /api/media/{id}/thumbnail # Get thumbnail
