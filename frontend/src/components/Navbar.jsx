@@ -18,7 +18,10 @@ useEffect(() => {
         const token = await getAccessTokenSilently();
         localStorage.setItem('auth_token', token);
         try {
-          await userService.getCurrentUserProfile();
+          const { data } = await userService.getCurrentUserProfile();
+          if (data && data.id) {
+            localStorage.setItem('user_id', data.id);
+          }
         } catch (profileErr) {
           console.error('❌ Error fetching profile:', profileErr.message);
         }
