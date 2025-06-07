@@ -1,11 +1,6 @@
 version: '3.8'
 
 services:
-  auth-service:
-    build: ./auth-service
-    ports:
-      - "8080:8080"
-    container_name: auth-service
 
   user-service:
     build: ./user-service
@@ -31,7 +26,6 @@ services:
       - "3000:3000"
     container_name: frontend
     depends_on:
-      - auth-service
       - user-service
       - content-service
       - media-service
