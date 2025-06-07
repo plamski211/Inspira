@@ -5,7 +5,7 @@ services:
   user-service:
     build: ./user-service
     ports:
-      - "8081:8080"
+      - "8082:8080"
     container_name: user-service
 
   content-service:
