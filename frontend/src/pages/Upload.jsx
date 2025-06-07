@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { X, UploadIcon, Tag } from "lucide-react"
 import { motion } from "framer-motion"
+import { contentService, mediaService } from "../services/api"
 
 export default function Upload() {
   const navigate = useNavigate()
@@ -71,7 +72,7 @@ export default function Upload() {
     setTags(tags.filter((tag) => tag !== tagToRemove))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!file) {
@@ -84,22 +85,30 @@ export default function Upload() {
       return
     }
 
-    // Simulate upload process
     setLoading(true)
 
-    setTimeout(() => {
-      // In a real app, this would be an API call to upload the file and metadata
-      console.log({
-        file,
+    try {
+      const uploadRes = await mediaService.uploadMedia(file)
+      const mediaKey = uploadRes.data.key
+
+      const userId = Number(localStorage.getItem('user_id'))
+      const contentData = {
+        userId,
+        type: 'image',
         title,
         description,
         tags,
-      })
+        mediaUrls: [mediaKey],
+      }
 
+      await contentService.createContent(contentData)
+      navigate('/explore')
+    } catch (err) {
+      console.error('Upload failed', err)
+      alert('Upload failed')
+    } finally {
       setLoading(false)
-      // Redirect to a success page or the pin detail page
-      navigate("/explore")
-    }, 2000)
+    }
   }
 
   return (
