@@ -28,6 +28,7 @@ api.interceptors.request.use(
 export const userService = {
   getProfile: () => api.get('/users/profile'),
   updateProfile: (profileData) => api.put('/users/profile', profileData),
+  getCurrentUserProfile: () => api.get('/users/profiles/me'),
 };
 
 export const contentService = {
