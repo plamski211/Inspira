@@ -3,6 +3,7 @@ import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { Search, Plus, Bell, MessageCircle, User } from "lucide-react"
 import { useAuth0 } from "@auth0/auth0-react";
+import { userService } from "../services/api";
 
 export default function Navbar({ scrolled }) {
   const [searchFocused, setSearchFocused] = useState(false)
@@ -15,10 +16,17 @@ useEffect(() => {
     if (isAuthenticated && getAccessTokenSilently) {
       try {
         const token = await getAccessTokenSilently();
-        console.log(token);
+        localStorage.setItem('auth_token', token);
+        try {
+          await userService.getCurrentUserProfile();
+        } catch (profileErr) {
+          console.error('❌ Error fetching profile:', profileErr.message);
+        }
       } catch (error) {
         console.error("❌ Error fetching token:", error.message);
       }
+    } else {
+      localStorage.removeItem('auth_token');
     }
   };
 
