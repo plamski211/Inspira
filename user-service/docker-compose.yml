@@ -31,7 +31,7 @@ services:
       - spring.datasource.url=jdbc:postgresql://postgres-user:5432/users
       - spring.datasource.username=user_user
       - spring.datasource.password=user_pw
-      - spring.security.oauth2.resourceserver.jwt.issuer-uri=https://<YOUR_DOMAIN>/
+      - spring.security.oauth2.resourceserver.jwt.issuer-uri=https://dev-1ixkzn1oh8o82jto.us.auth0.com/
       - spring.security.oauth2.resourceserver.jwt.audience=https://api.inspira.com
       - cors.allowed-origins=http://localhost:3000
       - cors.allowed-methods=GET,POST,PUT,DELETE,OPTIONS
