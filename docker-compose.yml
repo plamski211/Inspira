@@ -1,31 +1,103 @@
 version: '3.8'
 
+networks:
+  inspira-network:
+    driver: bridge
+
 services:
+  postgres-users:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user_user
+      POSTGRES_PASSWORD: user_pw
+      POSTGRES_DB: users
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_users_data:/var/lib/postgresql/data
+    networks:
+      - inspira-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_user -d users"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  postgres-content:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: content_user
+      POSTGRES_PASSWORD: content_pw
+      POSTGRES_DB: contentdb
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_content_data:/var/lib/postgresql/data
+    networks:
+      - inspira-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U content_user -d contentdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   user-service:
-    build: ./user-service
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
     ports:
-      - "8082:8080"
+      - "8081:8080"
     container_name: user-service
+    networks:
+      - inspira-network
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-users:5432/users
+      SPRING_DATASOURCE_USERNAME: user_user
+      SPRING_DATASOURCE_PASSWORD: user_pw
+    restart: unless-stopped
 
   content-service:
     build: ./content-service
     ports:
-      - "8082:8082"
+      - "8082:8080"
     container_name: content-service
+    networks:
+      - inspira-network
+    depends_on:
+      postgres-content:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-content:5432/contentdb
+      SPRING_DATASOURCE_USERNAME: content_user
+      SPRING_DATASOURCE_PASSWORD: content_pw
+    restart: unless-stopped
 
   media-service:
     build: ./media-service
     ports:
-      - "8083:8083"
+      - "8083:8080"
     container_name: media-service
+    networks:
+      - inspira-network
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
     ports:
-      - "3000:3000"
+      - "4173:4173"
     container_name: frontend
+    networks:
+      - inspira-network
     depends_on:
       - user-service
       - content-service
       - media-service
+
+volumes:
+  postgres_users_data:
+  postgres_content_data:

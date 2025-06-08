@@ -24,20 +24,20 @@ spring:
     gateway:
       routes:
         - id: user-service
-          uri: http://localhost:8082
+          uri: http://localhost:8081
           predicates:
-            - Path=/users/**
+            - Path=/api/auth/**, /api/users/**
           filters:
             - StripPrefix=1
             - PreserveHostHeader
         - id: content-service
-          uri: http://localhost:8083
+          uri: http://localhost:8082
           predicates:
             - Path=/content/**
           filters:
             - PreserveHostHeader
         - id: media-service
-          uri: http://localhost:8084
+          uri: http://localhost:8083
           predicates:
             - Path=/media/**
           filters:

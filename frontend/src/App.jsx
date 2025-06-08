@@ -51,7 +51,7 @@ export default function App() {
                     <Route path="/profile" element={<Profile />} />
                   </Routes>
                 </main>
-                {process.env.NODE_ENV === "development" && <DebugCSS />}
+                {import.meta.env.MODE === "development" && <DebugCSS />}
                 <Toaster />
               </div>
             </Router>

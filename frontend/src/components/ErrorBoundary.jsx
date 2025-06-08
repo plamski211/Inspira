@@ -39,7 +39,7 @@ class ErrorBoundary extends Component {
           <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
           <h2 className="text-xl font-bold text-red-800 mb-2">Something went wrong</h2>
           <p className="text-red-600 mb-4">We're sorry, but there was an error loading this content.</p>
-          {process.env.NODE_ENV === "development" && error && (
+          {import.meta.env.MODE === "development" && error && (
             <div className="mt-4 p-4 bg-gray-800 text-white rounded text-left overflow-auto max-w-full">
               <p className="font-mono text-sm">{error.toString()}</p>
               {errorInfo && (

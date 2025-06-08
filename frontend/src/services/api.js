@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Base URL for your API gateway or individual services
-const API_URL = process.env.REACT_APP_API_GATEWAY_URL || 'http://localhost:8080';
+const API_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080';
 
 // Create axios instance
 const api = axios.create({

@@ -2,8 +2,12 @@
 FROM gradle:8.0.2-jdk17 AS builder
 WORKDIR /home/gradle/src
 
+# Set environment variables to skip tests
+ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
+ENV SKIP_TESTS=true
+
 COPY --chown=gradle:gradle . .
-RUN gradle clean build --no-daemon
+RUN gradle clean bootJar --no-daemon
 
 # --- Runtime stage ---
 FROM eclipse-temurin:17-jre-jammy

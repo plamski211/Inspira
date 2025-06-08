@@ -37,9 +37,9 @@ tasks.named('test') {
 
 bootJar {
 	enabled = true
+	mainClass = 'com.inspira.media_processing_service.MediaProcessingServiceApplication'
 }
 
 jar {
-	enabled = true
-	archiveClassifier = ''
+	enabled = false
 }

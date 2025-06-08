@@ -7,7 +7,7 @@
  * <DebugCSS />
  */
 export function DebugCSS() {
-  if (process.env.NODE_ENV !== "development") return null
+  if (import.meta.env.MODE !== "development") return null
 
   return (
     <div className="fixed bottom-0 left-0 z-50 p-2 bg-white border shadow-md rounded-tr-md">
