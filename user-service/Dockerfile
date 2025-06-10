@@ -15,4 +15,8 @@ WORKDIR /app
 
 COPY --from=builder /home/gradle/src/build/libs/user-service-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+           "-Dspring.profiles.active=docker", \
+           "-Dspring.datasource.driver-class-name=org.postgresql.Driver", \
+           "-Dspring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect", \
+           "-jar", "app.jar"]

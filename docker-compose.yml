@@ -5,6 +5,7 @@ networks:
     driver: bridge
 
 services:
+  # Database services
   postgres-users:
     image: postgres:15
     environment:
@@ -12,7 +13,7 @@ services:
       POSTGRES_PASSWORD: user_pw
       POSTGRES_DB: users
     ports:
-      - "5434:5432"
+      - "5432:5432"
     volumes:
       - postgres_users_data:/var/lib/postgresql/data
     networks:
@@ -29,68 +30,84 @@ services:
     environment:
       POSTGRES_USER: content_user
       POSTGRES_PASSWORD: content_pw
-      POSTGRES_DB: contentdb
+      POSTGRES_DB: content
     ports:
-      - "5435:5432"
+      - "5433:5432"
     volumes:
       - postgres_content_data:/var/lib/postgresql/data
     networks:
       - inspira-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U content_user -d contentdb"]
+      test: ["CMD-SHELL", "pg_isready -U content_user -d content"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 10s
 
-  user-service:
+  postgres-media:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: media_user
+      POSTGRES_PASSWORD: media_pw
+      POSTGRES_DB: media
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_media_data:/var/lib/postgresql/data
+    networks:
+      - inspira-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U media_user -d media"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio:
+    image: minio/minio:latest
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --console-address ":9001"
+    networks:
+      - inspira-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@inspira.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    networks:
+      - inspira-network
+    depends_on:
+      - postgres-users
+      - postgres-content
+      - postgres-media
+
+  # Backend services
+  api-gateway:
+    container_name: api-gateway
     build:
-      context: ./user-service
-      dockerfile: Dockerfile
-    ports:
-      - "8081:8080"
-    container_name: user-service
-    networks:
-      - inspira-network
-    depends_on:
-      postgres-users:
-        condition: service_healthy
+      context: ./api-gateway
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-users:5432/users
-      SPRING_DATASOURCE_USERNAME: user_user
-      SPRING_DATASOURCE_PASSWORD: user_pw
-    restart: unless-stopped
-
-  content-service:
-    build: ./content-service
+      USER_SERVICE_URL: http://user-service:8080
+      CONTENT_SERVICE_URL: http://content-service:8081
+      MEDIA_SERVICE_URL: http://media-service:8082
     ports:
-      - "8082:8080"
-    container_name: content-service
-    networks:
-      - inspira-network
-    depends_on:
-      postgres-content:
-        condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-content:5432/contentdb
-      SPRING_DATASOURCE_USERNAME: content_user
-      SPRING_DATASOURCE_PASSWORD: content_pw
-    restart: unless-stopped
-
-  media-service:
-    build: ./media-service
-    ports:
-      - "8083:8080"
-    container_name: media-service
-    networks:
-      - inspira-network
-    restart: unless-stopped
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "4173:4173"
-    container_name: frontend
+      - "8000:8080"
     networks:
       - inspira-network
     depends_on:
@@ -98,6 +115,94 @@ services:
       - content-service
       - media-service
 
+  user-service:
+    container_name: user-service
+    build:
+      context: ./user-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-users:5432/users
+      SPRING_DATASOURCE_USERNAME: user_user
+      SPRING_DATASOURCE_PASSWORD: user_pw
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: DEBUG
+      LOGGING_LEVEL_COM_INSPIRA: DEBUG
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - inspira-network
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+
+  content-service:
+    container_name: content-service
+    build:
+      context: ./content-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-content:5432/content
+      SPRING_DATASOURCE_USERNAME: content_user
+      SPRING_DATASOURCE_PASSWORD: content_pw
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      SERVER_PORT: 8081
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+      MINIO_BUCKET_NAME: content-files
+      MEDIA_SERVICE_URL: http://media-service:8082
+    ports:
+      - "8081:8081"
+    networks:
+      - inspira-network
+    depends_on:
+      postgres-content:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  media-service:
+    container_name: media-service
+    build:
+      context: ./media-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-media:5432/media
+      SPRING_DATASOURCE_USERNAME: media_user
+      SPRING_DATASOURCE_PASSWORD: media_pw
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      SERVER_PORT: 8082
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+      MINIO_BUCKET_NAME: media-files
+    ports:
+      - "8082:8082"
+    networks:
+      - inspira-network
+    depends_on:
+      postgres-media:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+    ports:
+      - "4173:4173"
+    networks:
+      - inspira-network
+    depends_on:
+      - api-gateway
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api
+      VITE_AUTH0_REDIRECT_URI: http://localhost:4173
+
 volumes:
   postgres_users_data:
   postgres_content_data:
+  postgres_media_data:
+  minio_data:

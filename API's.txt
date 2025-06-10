@@ -6,6 +6,11 @@ PUT    /api/users/{id}           # Update user
 DELETE /api/users/{id}           # Delete user
 POST   /api/auth/login           # User login
 POST   /api/auth/refresh         # Refresh token
+GET    /api/users/profiles/me    # Get the current user's profile
+POST   /api/users/profiles        # Create a new user profile
+PUT    /api/users/profiles/me     # Update the current user's profile
+GET    /api/users/profiles/{auth0Id} # Get a user's profile by their Auth0 ID
+DELETE /api/users/profiles/{auth0Id} # Delete a user's profile by their Auth0 ID
 
 # Content Service API Endpoints
 GET    /api/content              # List content
@@ -15,6 +20,11 @@ PUT    /api/content/{id}         # Update content
 DELETE /api/content/{id}         # Delete content
 GET    /api/content/search       # Search content
 GET    /api/content/tags/{tag}   # Get content by tag
+GET    /api/content/pins         # Get a list of all pins
+GET    /api/content/pins/{id}    # Get a specific pin by its ID
+POST   /api/content/pins         # Create a new pin
+PUT    /api/content/pins/{id}    # Update a pin
+DELETE /api/content/pins/{id}    # Delete a pin
 
 # Media Service API Endpoints
 POST   /api/media/upload         # Upload media

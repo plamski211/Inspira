@@ -22,17 +22,25 @@ public class UserProfileService {
 
     @Transactional
     public UserProfile create(CreateUserProfileRequest dto) {
-        if (repository.findByAuth0Id(dto.getAuth0Id()).isPresent()) {
-            throw new ResourceNotFoundException("UserProfile", "auth0Id", dto.getAuth0Id());
-        }
-        UserProfile profile = new UserProfile(
-                dto.getAuth0Id(),
-                dto.getDisplayName(),
-                dto.getBio(),
-                dto.getAvatarUrl(),
-                dto.getLocation()
-        );
-        return repository.save(profile);
+        // Check if profile exists
+        return repository.findByAuth0Id(dto.getAuth0Id()).map(existingProfile -> {
+            // Update existing profile
+            existingProfile.setDisplayName(dto.getDisplayName());
+            existingProfile.setBio(dto.getBio());
+            existingProfile.setAvatarUrl(dto.getAvatarUrl());
+            existingProfile.setLocation(dto.getLocation());
+            return repository.save(existingProfile);
+        }).orElseGet(() -> {
+            // Create new profile
+            UserProfile profile = new UserProfile(
+                    dto.getAuth0Id(),
+                    dto.getDisplayName(),
+                    dto.getBio(),
+                    dto.getAvatarUrl(),
+                    dto.getLocation()
+            );
+            return repository.save(profile);
+        });
     }
 
     @Transactional(readOnly = true)
@@ -70,6 +78,9 @@ public class UserProfileService {
      */
     @Transactional
     public UserProfile findOrCreateFromJwt(Jwt jwt) {
+        if (jwt == null) {
+            throw new ResourceNotFoundException("JWT", "token", "null");
+        }
         String auth0Id = jwt.getSubject();
         return repository.findByAuth0Id(auth0Id).orElseGet(() -> {
             String displayName = jwt.getClaimAsString("nickname");

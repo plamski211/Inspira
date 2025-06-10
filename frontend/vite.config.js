@@ -6,7 +6,27 @@ import path from "path"
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        rewrite: (path) => path
+      }
+    },
+  },
+  preview: {
+    port: 4173,
+    proxy: {
+      '/api': {
+        target: 'http://user-service:8080', // The target is the user-service container
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path // Keep the /api prefix since the backend expects it
+      },
+    },
   },
   resolve: {
     alias: {
@@ -19,6 +39,17 @@ export default defineConfig({
       "@services": path.resolve(__dirname, "./src/services"),
       "@assets": path.resolve(__dirname, "./src/assets"),
       "@styles": path.resolve(__dirname, "./src/styles"),
+    },
+  },
+  build: {
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          auth0: ['@auth0/auth0-react'],
+        },
+      },
     },
   },
   css: {

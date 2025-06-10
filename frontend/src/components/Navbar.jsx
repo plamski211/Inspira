@@ -3,38 +3,47 @@ import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { Search, Plus, Bell, MessageCircle, User } from "lucide-react"
 import { useAuth0 } from "@auth0/auth0-react";
-import { userService } from "../services/api";
+import { userApi } from "../services/api";
 
 export default function Navbar({ scrolled }) {
   const [searchFocused, setSearchFocused] = useState(false)
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { loginWithRedirect, logout, isAuthenticated, user, getAccessTokenSilently } = useAuth0();
+  const { loginWithRedirect, logout, isAuthenticated, user } = useAuth0();
+  const [profile, setProfile] = useState(null);
 
-useEffect(() => {
-  const fetchToken = async () => {
-    if (isAuthenticated && getAccessTokenSilently) {
-      try {
-        const token = await getAccessTokenSilently();
-        localStorage.setItem('auth_token', token);
-        try {
-          const { data } = await userService.getCurrentUserProfile();
-          if (data && data.id) {
-            localStorage.setItem('user_id', data.id);
-          }
-        } catch (profileErr) {
-          console.error('❌ Error fetching profile:', profileErr.message);
-        }
-      } catch (error) {
-        console.error("❌ Error fetching token:", error.message);
+  useEffect(() => {
+    const createUserProfile = async () => {
+      if (!isAuthenticated || !user) {
+        console.log('Not authenticated or no user data');
+        console.log('Auth status:', isAuthenticated);
+        console.log('User data:', user);
+        return;
       }
-    } else {
-      localStorage.removeItem('auth_token');
-    }
-  };
 
-  fetchToken();
-}, [isAuthenticated, getAccessTokenSilently]);
+      try {
+        const userData = {
+          auth0Id: user.sub,
+          displayName: user.nickname || user.name || 'New User',
+          avatarUrl: user.picture,
+          bio: '',
+          location: user.locale || ''
+        };
+
+        console.log('Attempting to create user profile with data:', userData);
+        
+        const profileData = await userApi.create(userData);
+        console.log('Profile creation successful:', profileData);
+        
+        localStorage.setItem('userProfile', JSON.stringify(profileData));
+        setProfile(profileData);
+      } catch (error) {
+        console.error('Failed to create profile:', error);
+      }
+    };
+
+    createUserProfile();
+  }, [isAuthenticated, user]);
 
   return (
     <header
@@ -44,7 +53,7 @@ useEffect(() => {
       <div className="max-w-screen-2xl mx-auto px-4 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center">
-          <img src="/inspira-frontend/src/assets/logo.png" alt="Inspira" className="h-8 w-auto" />
+          <img src="/vite.svg" alt="Inspira" className="h-8 w-auto" />
           <span className="ml-2 text-inspira-dark font-bold text-xl hidden sm:inline-block">Inspira</span>
         </Link>
 
@@ -104,7 +113,9 @@ useEffect(() => {
             </button>
           ) : (
             <div className="flex items-center space-x-2">
-              <span className="hidden sm:inline text-sm text-gray-600">Hi, {user.nickname}</span>
+              <span className="hidden sm:inline text-sm text-gray-600">
+                Hi, {user?.nickname || 'User'}
+              </span>
               <button
                 onClick={() => logout({ returnTo: window.location.origin })}
                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 transition"
@@ -165,7 +176,7 @@ function MobileNavLink({ to, active, children }) {
   return (
     <Link
       to={to}
-      className={`px-4 py-2 rounded-lg font-medium text-base transition-colors ${active ? "bg-inspira/10 text-inspira-dark" : "text-gray-700"
+      className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${active ? "bg-inspira/10 text-inspira-dark" : "text-gray-700 hover:bg-gray-100"
         }`}
     >
       {children}
