@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-html
+  namespace: microservices
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Inspira Project</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+          background-color: #f5f5f5;
+        }
+        .container {
+          text-align: center;
+          padding: 2rem;
+          background-color: white;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          max-width: 600px;
+        }
+        h1 {
+          color: #333;
+        }
+        p {
+          color: #666;
+          line-height: 1.6;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>Inspira Project Frontend</h1>
+        <p>The frontend application is successfully deployed to Azure Kubernetes Service.</p>
+        <p>This is a placeholder page. The actual React application would be served here in a production environment.</p>
+        <p>Backend services are accessible at:</p>
+        <ul style="text-align: left;">
+          <li>API Gateway: <a href="/api/gateway/">/api/gateway/</a></li>
+          <li>User Service: <a href="/api/users/">/api/users/</a></li>
+        </ul>
+      </div>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: microservices
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      imagePullSecrets:
+      - name: acr-auth
+      containers:
+      - name: frontend
+        image: inspiraregistry.azurecr.io/inspira-frontend:latest
+        ports:
+        - containerPort: 4173
+        env:
+        - name: VITE_API_BASE_URL
+          value: "http://api-gateway.microservices.svc.cluster.local:8000/api"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: frontend-html-volume
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+      volumes:
+      - name: frontend-html-volume
+        configMap:
+          name: frontend-html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: microservices
+spec:
+  selector:
+    app: frontend
+  ports:
+  - port: 80
+    targetPort: 4173
+  type: ClusterIP

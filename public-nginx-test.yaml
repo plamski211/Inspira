@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: public-nginx-test
+  namespace: microservices
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: public-nginx-test
+  template:
+    metadata:
+      labels:
+        app: public-nginx-test
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: public-nginx-test
+  namespace: microservices
+spec:
+  selector:
+    app: public-nginx-test
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP

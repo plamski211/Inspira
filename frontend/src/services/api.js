@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Create a base axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api",
+  baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api",
   headers: {
     'Content-Type': 'application/json',
   },
@@ -13,7 +13,17 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Get token from local storage
-    const token = localStorage.getItem("auth_token");
+    let token = localStorage.getItem("auth_token");
+    if (!token) {
+      // Fallback to Auth0 storage structure
+      const auth0Data = localStorage.getItem("auth0.is.authenticated");
+      if (auth0Data) {
+        try {
+          const parsed = JSON.parse(auth0Data);
+          token = parsed.access_token;
+        } catch (_) {}
+      }
+    }
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
     }

@@ -1,0 +1,312 @@
+name: Azure Production Deployment
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  AZURE_RESOURCE_GROUP: inspira-project
+  AKS_CLUSTER_NAME: inspira-aks
+  NAMESPACE: microservices
+  STAGING_DOMAIN: staging.inspira-project.com
+  PRODUCTION_DOMAIN: inspira-project.com
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }},${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+      
+      - name: Build and push API Gateway image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./api-gateway
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:${{ github.sha }},${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:latest
+      
+      - name: Build and push User Service image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./user-service
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/user-service:${{ github.sha }},${{ secrets.DOCKERHUB_USERNAME }}/user-service:latest
+      
+      - name: Build and push Content Service image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./content-service
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/content-service:${{ github.sha }},${{ secrets.DOCKERHUB_USERNAME }}/content-service:latest
+      
+      - name: Build and push Media Service image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./media-service
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/media-service:${{ github.sha }},${{ secrets.DOCKERHUB_USERNAME }}/media-service:latest
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Test API Gateway
+        run: |
+          cd api-gateway
+          ./mvnw test
+      
+      - name: Test User Service
+        run: |
+          cd user-service
+          ./gradlew test
+      
+      - name: Test Content Service
+        run: |
+          cd content-service
+          ./gradlew test
+      
+      - name: Test Media Service
+        run: |
+          cd media-service
+          ./gradlew test
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Test Frontend
+        run: |
+          cd frontend
+          npm ci
+          npm test
+
+  deploy-staging:
+    needs: test
+    if: ${{ github.event_name == 'push' || github.event.inputs.environment == 'staging' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+      
+      - name: Update Kubernetes manifests
+        run: |
+          sed -i "s|image: .*frontend.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}|g" k8s-public/frontend-deployment.yaml
+          sed -i "s|image: .*api-gateway.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:${{ github.sha }}|g" k8s-public/api-gateway-deployment.yaml
+          sed -i "s|image: .*user-service.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/user-service:${{ github.sha }}|g" k8s-public/user-service-deployment.yaml
+      
+      - name: Deploy to AKS
+        run: |
+          kubectl apply -f k8s-public/config.yaml
+          kubectl apply -f k8s-public/frontend-deployment.yaml
+          kubectl apply -f k8s-public/api-gateway-deployment.yaml
+          kubectl apply -f k8s-public/user-service-deployment.yaml
+          
+          # Update ingress for staging
+          cat <<EOF | kubectl apply -f -
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: inspira-ingress
+            namespace: ${{ env.NAMESPACE }}
+            annotations:
+              kubernetes.io/ingress.class: nginx
+              nginx.ingress.kubernetes.io/rewrite-target: /\$1
+              nginx.ingress.kubernetes.io/use-regex: "true"
+              cert-manager.io/cluster-issuer: "letsencrypt-prod"
+          spec:
+            tls:
+            - hosts:
+              - ${{ env.STAGING_DOMAIN }}
+              secretName: inspira-staging-tls-cert
+            rules:
+            - host: ${{ env.STAGING_DOMAIN }}
+              http:
+                paths:
+                - path: /api/gateway/?(.*)
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: api-gateway
+                      port:
+                        number: 80
+                - path: /api/users/?(.*)
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: user-service
+                      port:
+                        number: 80
+                - path: /(.*)
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: frontend
+                      port:
+                        number: 80
+          EOF
+      
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/api-gateway -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/user-service -n ${{ env.NAMESPACE }} --timeout=300s
+      
+      - name: Run integration tests
+        run: |
+          echo "Running integration tests against staging environment"
+          # Add your integration test commands here
+
+  deploy-production:
+    needs: deploy-staging
+    if: ${{ github.event.inputs.environment == 'production' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+      
+      - name: Update Kubernetes manifests
+        run: |
+          sed -i "s|image: .*frontend.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}|g" k8s-public/frontend-deployment.yaml
+          sed -i "s|image: .*api-gateway.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:${{ github.sha }}|g" k8s-public/api-gateway-deployment.yaml
+          sed -i "s|image: .*user-service.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/user-service:${{ github.sha }}|g" k8s-public/user-service-deployment.yaml
+      
+      - name: Deploy to AKS
+        run: |
+          kubectl apply -f k8s-public/config.yaml
+          kubectl apply -f k8s-public/frontend-deployment.yaml
+          kubectl apply -f k8s-public/api-gateway-deployment.yaml
+          kubectl apply -f k8s-public/user-service-deployment.yaml
+          
+          # Update ingress for production
+          cat <<EOF | kubectl apply -f -
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: inspira-ingress
+            namespace: ${{ env.NAMESPACE }}
+            annotations:
+              kubernetes.io/ingress.class: nginx
+              nginx.ingress.kubernetes.io/rewrite-target: /\$1
+              nginx.ingress.kubernetes.io/use-regex: "true"
+              cert-manager.io/cluster-issuer: "letsencrypt-prod"
+          spec:
+            tls:
+            - hosts:
+              - ${{ env.PRODUCTION_DOMAIN }}
+              secretName: inspira-prod-tls-cert
+            rules:
+            - host: ${{ env.PRODUCTION_DOMAIN }}
+              http:
+                paths:
+                - path: /api/gateway/?(.*)
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: api-gateway
+                      port:
+                        number: 80
+                - path: /api/users/?(.*)
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: user-service
+                      port:
+                        number: 80
+                - path: /(.*)
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: frontend
+                      port:
+                        number: 80
+          EOF
+      
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/api-gateway -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/user-service -n ${{ env.NAMESPACE }} --timeout=300s
+      
+      - name: Post-deployment health check
+        run: |
+          # Get the ingress IP
+          INGRESS_IP=$(kubectl get ingress -n ${{ env.NAMESPACE }} -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+          
+          # Check frontend
+          curl -s -o /dev/null -w "%{http_code}" http://${{ env.PRODUCTION_DOMAIN }}/ | grep 200
+          
+          # Check API Gateway
+          curl -s -o /dev/null -w "%{http_code}" http://${{ env.PRODUCTION_DOMAIN }}/api/gateway/ | grep 200
+          
+          # Check User Service
+          curl -s -o /dev/null -w "%{http_code}" http://${{ env.PRODUCTION_DOMAIN }}/api/users/ | grep 200
+      
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "Production deployment successful!"
+          # Add notification commands (e.g., Slack, email)
+      
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "Production deployment failed!"
+          # Add notification commands (e.g., Slack, email) 

@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import com.inspira.userservice.service.UserProfileService;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -50,6 +51,7 @@ public class SecurityConfig {
                     .requestMatchers("/users/profiles/{auth0Id}").permitAll()
                     .requestMatchers("/users/profiles/debug/direct-create").permitAll()
                     .requestMatchers("/test/**").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/users/profiles").permitAll()
                     .anyRequest().authenticated();
             })
             .oauth2ResourceServer(oauth2 -> oauth2

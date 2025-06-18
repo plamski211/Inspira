@@ -1,0 +1,98 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  RESOURCE_GROUP: inspira-project
+  AKS_CLUSTER: inspira-aks
+  ACR_NAME: inspiraregistry20250617
+  NAMESPACE: microservices
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Log in to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Log in to ACR
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.ACR_NAME }}.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+    
+    - name: Build and push api-gateway image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./api-gateway
+        push: true
+        tags: ${{ env.ACR_NAME }}.azurecr.io/api-gateway:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/api-gateway:latest
+        platforms: linux/amd64
+    
+    - name: Build and push user-service image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./user-service
+        push: true
+        tags: ${{ env.ACR_NAME }}.azurecr.io/user-service:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/user-service:latest
+        platforms: linux/amd64
+    
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./frontend
+        push: true
+        tags: ${{ env.ACR_NAME }}.azurecr.io/frontend:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/frontend:latest
+        platforms: linux/amd64
+    
+    - name: Set up Kubectl
+      uses: azure/setup-kubectl@v3
+    
+    - name: Set AKS context
+      uses: azure/aks-set-context@v3
+      with:
+        resource-group: ${{ env.RESOURCE_GROUP }}
+        cluster-name: ${{ env.AKS_CLUSTER }}
+    
+    - name: Update Kubernetes manifests
+      run: |
+        # Update image tags in manifests
+        sed -i "s|image: ${{ env.ACR_NAME }}.azurecr.io/api-gateway:.*|image: ${{ env.ACR_NAME }}.azurecr.io/api-gateway:${{ github.sha }}|g" k8s-azure/api-gateway-deployment.yaml
+        sed -i "s|image: ${{ env.ACR_NAME }}.azurecr.io/user-service:.*|image: ${{ env.ACR_NAME }}.azurecr.io/user-service:${{ github.sha }}|g" k8s-azure/user-service-deployment.yaml
+        sed -i "s|image: ${{ env.ACR_NAME }}.azurecr.io/frontend:.*|image: ${{ env.ACR_NAME }}.azurecr.io/frontend:${{ github.sha }}|g" k8s-azure/frontend-deployment.yaml
+    
+    - name: Deploy to AKS
+      run: |
+        # Create namespace if it doesn't exist
+        kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Apply Kubernetes manifests
+        kubectl apply -f k8s-azure/ -n ${{ env.NAMESPACE }}
+        
+        # Wait for deployments to be ready
+        kubectl rollout status deployment/api-gateway -n ${{ env.NAMESPACE }} --timeout=300s
+        kubectl rollout status deployment/user-service -n ${{ env.NAMESPACE }} --timeout=300s
+        kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=300s
+    
+    - name: Verify deployment
+      run: |
+        # Get service endpoints
+        echo "API Gateway endpoint: $(kubectl get svc api-gateway -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+        echo "Frontend endpoint: $(kubectl get svc frontend -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+        
+        # Check pod status
+        kubectl get pods -n ${{ env.NAMESPACE }} 

@@ -1,0 +1,50 @@
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm ci
+
+# Copy the rest of the application code
+COPY . .
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV VITE_API_BASE_URL=/api
+ENV VITE_AUTH0_REDIRECT_URI=http://4.156.37.48/
+ENV VITE_AUTH0_AUDIENCE=https://api.inspira.com
+ENV VITE_PUBLIC_URL=http://4.156.37.48
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine
+
+# Copy the build output from the builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Create a script to inject environment variables at runtime
+RUN echo '#!/bin/sh' > /docker-entrypoint.d/40-inject-env.sh && \
+    echo 'set -e' >> /docker-entrypoint.d/40-inject-env.sh && \
+    echo 'JSFILE=/usr/share/nginx/html/env-config.js' >> /docker-entrypoint.d/40-inject-env.sh && \
+    echo 'echo "console.log(\"Loading runtime config...\");" > $JSFILE' >> /docker-entrypoint.d/40-inject-env.sh && \
+    echo 'echo "window.RUNTIME_CONFIG = {" >> $JSFILE' >> /docker-entrypoint.d/40-inject-env.sh && \
+    echo 'echo "  API_URL: \"${API_URL:-/api}\"," >> $JSFILE' >> /docker-entrypoint.d/40-inject-env.sh && \
+    echo 'echo "  AUTH0_AUDIENCE: \"${AUTH0_AUDIENCE:-https://api.inspira.com}\"," >> $JSFILE' >> /docker-entrypoint.d/40-inject-env.sh && \
+    echo 'echo "  AUTH0_REDIRECT_URI: \"${AUTH0_REDIRECT_URI:-http://4.156.37.48/}\"" >> $JSFILE' >> /docker-entrypoint.d/40-inject-env.sh && \
+    echo 'echo "};" >> $JSFILE' >> /docker-entrypoint.d/40-inject-env.sh && \
+    chmod +x /docker-entrypoint.d/40-inject-env.sh
+
+# Create a simple HTML file that includes the runtime config
+RUN echo '<script src="/env-config.js"></script>' >> /usr/share/nginx/html/index.html
+
+# Expose port 80
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"] 

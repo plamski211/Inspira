@@ -1,0 +1,21 @@
+# auth-service/k8s/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-config
+  namespace: microservices
+data:
+  db-host: "postgres-auth"
+  db-port: "5432"
+  db-name: "auth_db"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: auth-secrets
+  namespace: microservices
+type: Opaque
+data:
+  jwt-secret: "YmFzZTY0ZW5jb2RlZHNlY3JldA==" # base64 encoded
+  db-user: "YXV0aF91c2Vy" # base64 encoded
+  db-password: "c2VjdXJlcGFzc3dvcmQ=" # base64 encoded

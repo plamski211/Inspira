@@ -1,61 +1,107 @@
 package com.inspira.contentservice.service;
 
-import com.inspira.contentservice.dto.ContentItemDto;
-import com.inspira.contentservice.mapper.ContentMapper;
-import com.inspira.contentservice.model.ContentItem;
-import com.inspira.contentservice.repository.ContentItemRepository;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import com.inspira.contentservice.model.Content;
+import com.inspira.contentservice.repository.ContentRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
-import static com.inspira.contentservice.config.RabbitConfig.CONTENT_CREATED_QUEUE;
-
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class ContentService {
-    private final ContentItemRepository repo;
-    private final ContentMapper mapper;
-    private final RabbitTemplate rabbit;
+    private final ContentRepository contentRepository;
+    private final FileStorageService fileStorageService;
+    private final MediaProcessingService mediaProcessingService;
 
-    public ContentService(ContentItemRepository repo, ContentMapper mapper, RabbitTemplate rabbit) {
-        this.repo = repo;
-        this.mapper = mapper;
-        this.rabbit = rabbit;
+    @Transactional
+    public Content uploadContent(MultipartFile file, String title, String description, String userId) {
+        // Upload file to MinIO
+        String objectName = fileStorageService.uploadFile(file, file.getContentType());
+        Content content = Content.builder()
+                .title(title)
+                .description(description)
+                .objectName(objectName)
+                .originalFileName(file.getOriginalFilename())
+                .contentType(file.getContentType())
+                .fileSize(file.getSize())
+                .uploadedBy(userId)
+                .isProcessed(false)
+                .createdAt(Instant.now())
+                .build();
+        Content saved = contentRepository.save(content);
+        // Optionally trigger media processing
+        try {
+            mediaProcessingService.requestProcessing(saved.getId(), objectName, file.getContentType());
+        } catch (Exception e) {
+            log.warn("Failed to trigger media processing: {}", e.getMessage());
+        }
+        return saved;
     }
 
-    public ContentItemDto create(ContentItemDto dto) {
-        ContentItem entity = mapper.toEntity(dto);
-        entity.setStatus("pending");
-        ContentItem saved = repo.save(entity);
-        rabbit.convertAndSend(CONTENT_CREATED_QUEUE, saved.getId().toString());
-        return mapper.toDto(saved);
+    @Transactional(readOnly = true)
+    public List<Content> getContentByUser(String userId) {
+        return contentRepository.findByUploadedBy(userId);
     }
 
-    public List<ContentItemDto> listAll() {
-        return repo.findAll().stream()
-            .map(mapper::toDto)
-            .collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public List<Content> getAllContent() {
+        return contentRepository.findAll();
     }
 
-    public List<ContentItemDto> listByUser(Long userId) {
-        return repo.findByUserId(userId).stream()
-            .map(mapper::toDto)
-            .collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public Optional<Content> getContentById(Long id) {
+        return contentRepository.findById(id);
     }
 
-    public List<ContentItemDto> listByTag(String tag) {
-        return repo.findByTagsContaining(tag).stream()
-            .map(mapper::toDto)
-            .collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public String getContentUrl(Long id, boolean useProcessed) {
+        Content content = contentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Content not found"));
+        String objectName = (useProcessed && content.getIsProcessed() != null && content.getIsProcessed() && content.getProcessedObjectName() != null)
+                ? content.getProcessedObjectName() : content.getObjectName();
+        return fileStorageService.getFileUrl(objectName, 3600); // 1 hour expiry
     }
 
-    public Optional<ContentItemDto> getById(Long id) {
-        return repo.findById(id).map(mapper::toDto);
+    @Transactional
+    public Content updateContent(Long id, String title, String description) {
+        Content content = contentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Content not found"));
+        content.setTitle(title);
+        content.setDescription(description);
+        content.setUpdatedAt(Instant.now());
+        return contentRepository.save(content);
     }
 
-    public void delete(Long id) {
-        repo.deleteById(id);
+    @Transactional
+    public void deleteContent(Long id) {
+        Content content = contentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Content not found"));
+        // Optionally delete file from MinIO
+        try {
+            fileStorageService.deleteFile(content.getObjectName());
+            if (content.getProcessedObjectName() != null) {
+                fileStorageService.deleteFile(content.getProcessedObjectName());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to delete file(s) from storage: {}", e.getMessage());
+        }
+        contentRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void updateProcessedContent(Long contentId, String processedObjectName) {
+        Content content = contentRepository.findById(contentId)
+                .orElseThrow(() -> new RuntimeException("Content not found"));
+        content.setProcessedObjectName(processedObjectName);
+        content.setIsProcessed(true);
+        content.setUpdatedAt(Instant.now());
+        contentRepository.save(content);
     }
 } 

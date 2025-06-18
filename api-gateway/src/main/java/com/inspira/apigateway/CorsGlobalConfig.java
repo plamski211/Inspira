@@ -11,6 +11,8 @@ public class CorsGlobalConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
+        // Allow all origins for development. Restrict in production!
+        config.addAllowedOriginPattern("*");
         config.addAllowedOrigin("http://localhost:4173");
         config.addAllowedOrigin("http://localhost:5173");
         config.addAllowedOrigin("http://frontend:4173");

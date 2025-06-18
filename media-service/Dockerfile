@@ -1,9 +1,14 @@
-# Use an official OpenJDK base image
-FROM eclipse-temurin:17-jdk-jammy
+# --- Builder stage ---
+FROM gradle:8.0.2-jdk17 AS builder
+WORKDIR /home/gradle/src
 
+COPY --chown=gradle:gradle . .
+RUN gradle clean build -x test --no-daemon
+
+# --- Runtime stage ---
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
-COPY build/libs/media-processing-service-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=builder /home/gradle/src/build/libs/*.jar app.jar
 EXPOSE 8083
-
 ENTRYPOINT ["java", "-jar", "app.jar"]

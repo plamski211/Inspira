@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: acr-test-new
+  namespace: microservices
+spec:
+  containers:
+  - name: acr-test
+    image: inspiraregistry20250617.azurecr.io/test:latest
+  imagePullSecrets:
+  - name: acr-auth-new 

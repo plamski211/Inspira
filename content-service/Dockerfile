@@ -1,17 +1,14 @@
-# Use an official OpenJDK base image
-FROM eclipse-temurin:17-jdk-jammy
+# --- Builder stage ---
+FROM gradle:8.0.2-jdk17 AS builder
+WORKDIR /home/gradle/src
 
-# Set the working directory in the container
+COPY --chown=gradle:gradle . .
+RUN gradle clean build -x test --no-daemon
+
+# --- Runtime stage ---
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
-# Build argument for the JAR file, adjust if your build output folder differs
-ARG JAR_FILE=build/libs/*.jar
-
-# Copy the JAR file into the container
-COPY ${JAR_FILE} app.jar
-
-# Expose the port on which your app will run (adjust if necessary)
+COPY --from=builder /home/gradle/src/build/libs/*.jar app.jar
 EXPOSE 8082
-
-# Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]

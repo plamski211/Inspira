@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: inspira-ingress
+  namespace: microservices
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+  - host: inspira.example.com  # Replace with your actual domain
+    http:
+      paths:
+      - path: /api/users
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 80
+      - path: /api/content
+        pathType: Prefix
+        backend:
+          service:
+            name: content-service
+            port:
+              number: 80
+      - path: /api/media
+        pathType: Prefix
+        backend:
+          service:
+            name: media-service
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80
