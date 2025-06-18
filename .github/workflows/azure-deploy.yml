@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
 
 env:
-  RESOURCE_GROUP: inspira-project
+  RESOURCE_GROUP: inspira-rg
   AKS_CLUSTER: inspira-aks
-  ACR_NAME: inspiraregistry20250617
+  ACR_NAME: inspiraregistry
   NAMESPACE: microservices
 
 jobs:
