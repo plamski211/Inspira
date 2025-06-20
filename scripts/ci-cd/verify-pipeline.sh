@@ -65,6 +65,13 @@ else
   echo "❌ Docker build troubleshooting guide not found"
 fi
 
+# Check if Kubernetes manifests guide exists
+if [ -f "docs/ci-cd/KUBERNETES-MANIFESTS-GUIDE.md" ]; then
+  echo "✅ Kubernetes manifests guide found"
+else
+  echo "❌ Kubernetes manifests guide not found"
+fi
+
 # Check if user-service verification script exists
 if [ -f "scripts/ci-cd/verify-user-service.sh" ]; then
   echo "✅ User service verification script found"
@@ -77,6 +84,13 @@ if [ -f "scripts/ci-cd/generate-dockerfiles.sh" ]; then
   echo "✅ Dockerfile generation script found"
 else
   echo "❌ Dockerfile generation script not found"
+fi
+
+# Check if Kubernetes manifest preparation script exists
+if [ -f "scripts/ci-cd/prepare-k8s-manifests.sh" ]; then
+  echo "✅ Kubernetes manifest preparation script found"
+else
+  echo "❌ Kubernetes manifest preparation script not found"
 fi
 
 echo ""
@@ -106,6 +120,7 @@ echo "✅ Automated load testing"
 echo "✅ Fallback mechanisms for missing components"
 echo "✅ Error handling for Azure authentication issues"
 echo "✅ Error handling for Docker build issues"
+echo "✅ Error handling for Kubernetes manifest issues"
 
 echo ""
 echo "===== Pipeline Resilience ====="
@@ -120,6 +135,8 @@ echo "✅ AKS context error handling"
 echo "✅ Mock deployments when Azure credentials are missing"
 echo "✅ Automatic Dockerfile generation for missing services"
 echo "✅ Specific verification for user-service Dockerfile"
+echo "✅ Automatic Kubernetes manifest generation"
+echo "✅ Fallback for missing Kubernetes manifests"
 
 echo ""
 echo "Pipeline verification completed successfully!" 

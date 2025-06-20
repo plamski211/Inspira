@@ -608,6 +608,60 @@ EOF
             echo "Azure login and AKS context setup successful."
           fi
       
+      - name: Prepare Kubernetes manifests
+        run: |
+          if [ -f "scripts/ci-cd/prepare-k8s-manifests.sh" ]; then
+            chmod +x scripts/ci-cd/prepare-k8s-manifests.sh
+            ./scripts/ci-cd/prepare-k8s-manifests.sh
+          else
+            echo "Manifest preparation script not found, creating directory manually"
+            mkdir -p k8s-azure
+            
+            # Create simple manifests if they don't exist
+            for service in "api-gateway" "frontend" "user-service" "content-service" "media-service"; do
+              if [ ! -f "k8s-azure/$service-deployment.yaml" ]; then
+                echo "Creating simple $service deployment manifest"
+                cat > "k8s-azure/$service-deployment.yaml" << EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: $service
+  template:
+    metadata:
+      labels:
+        app: $service
+    spec:
+      containers:
+      - name: $service
+        image: inspira/$service:latest
+        ports:
+        - containerPort: $([ "$service" == "frontend" ] && echo "80" || echo "8080")
+EOF
+              fi
+            done
+          fi
+      
+      - name: Update image tags in manifests
+        run: |
+          # Set tag prefix (default to empty if not set)
+          TAG_PREFIX="${{ vars.REGISTRY_URL || '' }}"
+          if [ -n "$TAG_PREFIX" ] && ! [[ "$TAG_PREFIX" == */ ]]; then
+            TAG_PREFIX="$TAG_PREFIX/"
+          fi
+          
+          # Update only if files exist
+          [ -f "k8s-azure/frontend-deployment.yaml" ] && sed -i "s|image: .*frontend.*|image: ${TAG_PREFIX}frontend:${{ github.sha }}|g" k8s-azure/frontend-deployment.yaml || echo "Frontend deployment file not found"
+          [ -f "k8s-azure/api-gateway-deployment.yaml" ] && sed -i "s|image: .*api-gateway.*|image: ${TAG_PREFIX}api-gateway:${{ github.sha }}|g" k8s-azure/api-gateway-deployment.yaml || echo "API Gateway deployment file not found"
+          [ -f "k8s-azure/user-service-deployment.yaml" ] && sed -i "s|image: .*user-service.*|image: ${TAG_PREFIX}user-service:${{ github.sha }}|g" k8s-azure/user-service-deployment.yaml || echo "User Service deployment file not found"
+          [ -f "k8s-azure/content-service-deployment.yaml" ] && sed -i "s|image: .*content-service.*|image: ${TAG_PREFIX}content-service:${{ github.sha }}|g" k8s-azure/content-service-deployment.yaml || echo "Content Service deployment file not found"
+          [ -f "k8s-azure/media-service-deployment.yaml" ] && sed -i "s|image: .*media-service.*|image: ${TAG_PREFIX}media-service:${{ github.sha }}|g" k8s-azure/media-service-deployment.yaml || echo "Media Service deployment file not found"
+      
       - name: Deploy to staging
         run: |
           echo "Deploying to staging environment"
@@ -674,6 +728,60 @@ EOF
           else
             echo "Azure login and AKS context setup successful."
           fi
+      
+      - name: Prepare Kubernetes manifests
+        run: |
+          if [ -f "scripts/ci-cd/prepare-k8s-manifests.sh" ]; then
+            chmod +x scripts/ci-cd/prepare-k8s-manifests.sh
+            ./scripts/ci-cd/prepare-k8s-manifests.sh
+          else
+            echo "Manifest preparation script not found, creating directory manually"
+            mkdir -p k8s-azure
+            
+            # Create simple manifests if they don't exist
+            for service in "api-gateway" "frontend" "user-service" "content-service" "media-service"; do
+              if [ ! -f "k8s-azure/$service-deployment.yaml" ]; then
+                echo "Creating simple $service deployment manifest"
+                cat > "k8s-azure/$service-deployment.yaml" << EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: $service
+  template:
+    metadata:
+      labels:
+        app: $service
+    spec:
+      containers:
+      - name: $service
+        image: inspira/$service:latest
+        ports:
+        - containerPort: $([ "$service" == "frontend" ] && echo "80" || echo "8080")
+EOF
+              fi
+            done
+          fi
+      
+      - name: Update image tags in manifests
+        run: |
+          # Set tag prefix (default to empty if not set)
+          TAG_PREFIX="${{ vars.REGISTRY_URL || '' }}"
+          if [ -n "$TAG_PREFIX" ] && ! [[ "$TAG_PREFIX" == */ ]]; then
+            TAG_PREFIX="$TAG_PREFIX/"
+          fi
+          
+          # Update only if files exist
+          [ -f "k8s-azure/frontend-deployment.yaml" ] && sed -i "s|image: .*frontend.*|image: ${TAG_PREFIX}frontend:${{ github.sha }}|g" k8s-azure/frontend-deployment.yaml || echo "Frontend deployment file not found"
+          [ -f "k8s-azure/api-gateway-deployment.yaml" ] && sed -i "s|image: .*api-gateway.*|image: ${TAG_PREFIX}api-gateway:${{ github.sha }}|g" k8s-azure/api-gateway-deployment.yaml || echo "API Gateway deployment file not found"
+          [ -f "k8s-azure/user-service-deployment.yaml" ] && sed -i "s|image: .*user-service.*|image: ${TAG_PREFIX}user-service:${{ github.sha }}|g" k8s-azure/user-service-deployment.yaml || echo "User Service deployment file not found"
+          [ -f "k8s-azure/content-service-deployment.yaml" ] && sed -i "s|image: .*content-service.*|image: ${TAG_PREFIX}content-service:${{ github.sha }}|g" k8s-azure/content-service-deployment.yaml || echo "Content Service deployment file not found"
+          [ -f "k8s-azure/media-service-deployment.yaml" ] && sed -i "s|image: .*media-service.*|image: ${TAG_PREFIX}media-service:${{ github.sha }}|g" k8s-azure/media-service-deployment.yaml || echo "Media Service deployment file not found"
       
       - name: Deploy to production
         run: |
