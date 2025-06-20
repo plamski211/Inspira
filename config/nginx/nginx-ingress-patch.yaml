@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ingress-ingress-nginx-controller
+  namespace: ingress-basic
+spec:
+  template:
+    spec:
+      containers:
+      - name: controller
+        volumeMounts:
+        - name: mime-types
+          mountPath: /etc/nginx/mime.types
+          subPath: mime.types
+      volumes:
+      - name: mime-types
+        configMap:
+          name: nginx-ingress-mime-types 

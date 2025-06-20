@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b0a6b15d-a784-4330-8067-3263f1c58a00" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../DEPLOYMENT-COMPLETION.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../DEPLOYMENT-RESOLUTION.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../DEPLOYMENT-SUCCESS.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../DEPLOYMENT-SUMMARY.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../DEPLOYMENT-TROUBLESHOOTING.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Dockerfile.test" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../FRONTEND-DEPLOYMENT-SUCCESS.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../FRONTEND-DEPLOYMENT.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PRODUCTION-DEPLOYMENT-SUMMARY.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../access-grafana.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../access-grafana.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../acr-test-pod.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../azure-credentials.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../build-auth-fixed-frontend.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../build-frontend-prod.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../build-frontend-prod.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../build-multiplatform-frontend.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../deploy-fixed-frontend.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../deploy-optimized-frontend.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../deploy-simple-html.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../deploy-static-frontend.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fix-acr-auth.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fix-platform-compatibility.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/.eslintrc.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/.prettierrc.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/Dockerfile.fixed" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/Dockerfile.optimized" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/Dockerfile.optimized" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/Dockerfile.prod" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/Dockerfile.prod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/Dockerfile.simple" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/Dockerfile.simple" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/Dockerfile.simple-html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/Dockerfile.static" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/dist/assets/index-001a0fd7.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/dist/assets/index-001a0fd7.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/dist/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/nginx.conf" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/nginx.conf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/@auth0_auth0-react.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/@auth0_auth0-react.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/@auth0_auth0-spa-js.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/@auth0_auth0-spa-js.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/chunk-G52XTN3B.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/chunk-G52XTN3B.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/chunk-LXGCQ6UQ.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/chunk-LXGCQ6UQ.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/chunk-ROME4SDB.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/chunk-ROME4SDB.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/framer-motion.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/framer-motion.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/lucide-react.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/lucide-react.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/package.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react-dom.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react-dom.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react-dom_client.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react-dom_client.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react-intersection-observer.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react-intersection-observer.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react-router-dom.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react-router-dom.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react_jsx-dev-runtime.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react_jsx-dev-runtime.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react_jsx-runtime.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/node_modules/.vite/deps_temp_2da77a9b/react_jsx-runtime.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/postcss.config.cjs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src.zip" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/App.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/main.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/main.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/tailwind.config.cjs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../k8s-public/api-gateway-deployment.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../k8s-public/api-gateway-deployment.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../k8s-public/frontend-auth-fixed.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../k8s-public/frontend-deployment.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../k8s-public/frontend-deployment.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../k8s-public/frontend-fixed.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../k8s-public/frontend-multiplatform.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../k8s-public/frontend-optimized.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../k8s-public/frontend-simple-html.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../k8s-public/ingress-tls-simple.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../k8s-public/ingress-tls.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../k8s-public/ingress-tls.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../k8s-public/user-service-deployment.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../k8s-public/user-service-deployment.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../public-nginx-test.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../public-test-pod.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../push-to-dockerhub.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../update-deployment.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../update-k8s-manifests.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../update-to-public-images.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../upgrade-to-production.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.14.1/checksums/checksums.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.14.1/executionHistory/executionHistory.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.14.1/executionHistory/executionHistory.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.14.1/fileChanges/last-build.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.14.1/fileHashes/fileHashes.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.14.1/fileHashes/fileHashes.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.14.1/fileHashes/resourceHashesCache.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.14.1/gc.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.9/checksums/checksums.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.9/dependencies-accessors/gc.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.9/executionHistory/executionHistory.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.9/fileChanges/last-build.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.9/fileHashes/fileHashes.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/8.9/gc.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/cache.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/outputFiles.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/file-system.probe" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/vcs-1/gc.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/main/application-docker.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/main/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/test/com/inspira/userservice/UserServiceApplicationTests.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/UserServiceApplication.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/config/CorsConfig.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/config/SecurityConfig.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/controller/HealthController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/controller/TestController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/controller/UserProfileController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/dto/CreateUserProfileRequest.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/dto/UpdateUserProfileRequest.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/dto/UserProfileResponse.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/exception/ErrorResponse.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/exception/GlobalExceptionHandler.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/exception/ResourceNotFoundException.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/model/UserProfile.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/repository/UserProfileRepository.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/inspira/userservice/service/UserProfileService.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/libs/user-service-0.0.1-SNAPSHOT-plain.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/libs/user-service-0.0.1-SNAPSHOT.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/reports/problems/problems-report.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/resolvedMainClassName" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/resources/main/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/tmp/bootJar/MANIFEST.MF" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/AuthController.class.uniqueId0" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/CorsConfig.class.uniqueId1" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/GlobalExceptionHandler.class.uniqueId3" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/SecurityConfig.class.uniqueId5" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/UserProfileController.class.uniqueId2" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/UserProfileService.class.uniqueId4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/previous-compilation-data.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/tmp/jar/MANIFEST.MF" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradlew" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradlew.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/settings.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/UserServiceApplication.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/config/EnsureUserProfileFilter.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/config/SecurityConfig.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/controller/HealthController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/controller/TestController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/controller/UserProfileController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/dto/CreateUserProfileRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/dto/UpdateUserProfileRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/dto/UserProfileResponse.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/exception/ErrorResponse.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/exception/GlobalExceptionHandler.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/exception/ResourceNotFoundException.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/model/UserProfile.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/repository/UserProfileRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/inspira/userservice/service/UserProfileService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/application-docker.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/inspira/userservice/UserServiceApplicationTests.java" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
+  <component name="ProjectId" id="2yfrurzb7YZCyjdcFE5uJkY0a1v" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/plamennyagolov/Desktop/inspira_github/user-service&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RunManager">
+    <configuration name="UserServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="user-service.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.inspira.userservice.UserServiceApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.25410.109" />
+        <option value="bundled-js-predefined-d6986cc7102b-6a121458b545-JavaScript-IU-251.25410.109" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b0a6b15d-a784-4330-8067-3263f1c58a00" name="Changes" comment="" />
+      <created>1750236694776</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1750236694776</updated>
+      <workItem from="1750236696212" duration="1644000" />
+      <workItem from="1750238972997" duration="190000" />
+      <workItem from="1750239608410" duration="3285000" />
+      <workItem from="1750321243326" duration="3993000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

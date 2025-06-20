@@ -1,0 +1,21 @@
+[
+  {
+    "op": "add",
+    "path": "/spec/template/spec/volumes/-",
+    "value": {
+      "name": "test-page",
+      "configMap": {
+        "name": "frontend-test-page"
+      }
+    }
+  },
+  {
+    "op": "add",
+    "path": "/spec/template/spec/containers/0/volumeMounts/-",
+    "value": {
+      "name": "test-page",
+      "mountPath": "/usr/share/nginx/html/test.html",
+      "subPath": "test.html"
+    }
+  }
+] 

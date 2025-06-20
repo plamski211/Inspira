@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: microservices
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        env:
+        - name: VITE_API_BASE_URL
+          value: "https://20.242.229.250/api"
+        - name: VITE_AUTH0_DOMAIN
+          valueFrom:
+            secretKeyRef:
+              name: auth0-credentials
+              key: domain
+        - name: VITE_AUTH0_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: auth0-credentials
+              key: clientId
+        - name: VITE_AUTH0_CALLBACK_URL
+          value: "https://20.242.229.250"
+        - name: VITE_AUTH0_AUDIENCE
+          valueFrom:
+            secretKeyRef:
+              name: auth0-credentials
+              key: audience
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d/
+        - name: frontend-app
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: frontend-nginx-config
+          items:
+          - key: nginx.conf
+            path: default.conf
+      - name: frontend-app
+        configMap:
+          name: frontend-react-app
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: microservices
+  labels:
+    app: frontend
+    monitoring: "true"
+spec:
+  selector:
+    app: frontend
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  type: ClusterIP 

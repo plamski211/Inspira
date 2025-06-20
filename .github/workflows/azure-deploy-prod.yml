@@ -24,7 +24,28 @@ env:
   PRODUCTION_DOMAIN: inspira-project.com
 
 jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+      
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'code-scanning'
+
   build:
+    needs: security-scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -72,6 +93,15 @@ jobs:
           context: ./media-service
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/media-service:${{ github.sha }},${{ secrets.DOCKERHUB_USERNAME }}/media-service:latest
+      
+      - name: Scan Docker images
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL'
 
   test:
     needs: build
@@ -115,9 +145,41 @@ jobs:
           cd frontend
           npm ci
           npm test
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            **/build/reports/tests/
+            **/target/surefire-reports/
+            frontend/coverage/
+
+  load-test:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up JMeter
+        run: |
+          wget https://downloads.apache.org/jmeter/binaries/apache-jmeter-5.5.tgz
+          tar -xzf apache-jmeter-5.5.tgz
+          
+      - name: Run load tests
+        run: |
+          ./apache-jmeter-5.5/bin/jmeter -n -t load-test-plan.jmx -l load-test-results.jtl -e -o load-test-report
+      
+      - name: Upload load test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: load-test-results
+          path: |
+            load-test-results.jtl
+            load-test-report/
 
   deploy-staging:
-    needs: test
+    needs: [test, load-test]
     if: ${{ github.event_name == 'push' || github.event.inputs.environment == 'staging' }}
     runs-on: ubuntu-latest
     environment: staging
@@ -137,71 +199,43 @@ jobs:
       
       - name: Update Kubernetes manifests
         run: |
-          sed -i "s|image: .*frontend.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}|g" k8s-public/frontend-deployment.yaml
-          sed -i "s|image: .*api-gateway.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:${{ github.sha }}|g" k8s-public/api-gateway-deployment.yaml
-          sed -i "s|image: .*user-service.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/user-service:${{ github.sha }}|g" k8s-public/user-service-deployment.yaml
+          sed -i "s|image: .*frontend.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}|g" k8s/overlays/dev/frontend-deployment.yaml
+          sed -i "s|image: .*api-gateway.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:${{ github.sha }}|g" k8s/overlays/dev/api-gateway-deployment.yaml
+          sed -i "s|image: .*user-service.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/user-service:${{ github.sha }}|g" k8s/overlays/dev/user-service-deployment.yaml
+          sed -i "s|image: .*content-service.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/content-service:${{ github.sha }}|g" k8s/overlays/dev/content-service-deployment.yaml
+          sed -i "s|image: .*media-service.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/media-service:${{ github.sha }}|g" k8s/overlays/dev/media-service-deployment.yaml
       
       - name: Deploy to AKS
         run: |
-          kubectl apply -f k8s-public/config.yaml
-          kubectl apply -f k8s-public/frontend-deployment.yaml
-          kubectl apply -f k8s-public/api-gateway-deployment.yaml
-          kubectl apply -f k8s-public/user-service-deployment.yaml
+          kubectl apply -f k8s/overlays/dev/config.yaml
+          kubectl apply -f k8s/overlays/dev/frontend-deployment.yaml
+          kubectl apply -f k8s/overlays/dev/api-gateway-deployment.yaml
+          kubectl apply -f k8s/overlays/dev/user-service-deployment.yaml
+          kubectl apply -f k8s/overlays/dev/content-service-deployment.yaml
+          kubectl apply -f k8s/overlays/dev/media-service-deployment.yaml
+          kubectl apply -f k8s/overlays/dev/ingress.yaml
           
-          # Update ingress for staging
-          cat <<EOF | kubectl apply -f -
-          apiVersion: networking.k8s.io/v1
-          kind: Ingress
-          metadata:
-            name: inspira-ingress
-            namespace: ${{ env.NAMESPACE }}
-            annotations:
-              kubernetes.io/ingress.class: nginx
-              nginx.ingress.kubernetes.io/rewrite-target: /\$1
-              nginx.ingress.kubernetes.io/use-regex: "true"
-              cert-manager.io/cluster-issuer: "letsencrypt-prod"
-          spec:
-            tls:
-            - hosts:
-              - ${{ env.STAGING_DOMAIN }}
-              secretName: inspira-staging-tls-cert
-            rules:
-            - host: ${{ env.STAGING_DOMAIN }}
-              http:
-                paths:
-                - path: /api/gateway/?(.*)
-                  pathType: Prefix
-                  backend:
-                    service:
-                      name: api-gateway
-                      port:
-                        number: 80
-                - path: /api/users/?(.*)
-                  pathType: Prefix
-                  backend:
-                    service:
-                      name: user-service
-                      port:
-                        number: 80
-                - path: /(.*)
-                  pathType: Prefix
-                  backend:
-                    service:
-                      name: frontend
-                      port:
-                        number: 80
-          EOF
+          # Apply monitoring configurations
+          kubectl apply -f k8s/base/service-monitors.yaml
       
       - name: Verify deployment
         run: |
           kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=300s
           kubectl rollout status deployment/api-gateway -n ${{ env.NAMESPACE }} --timeout=300s
           kubectl rollout status deployment/user-service -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/content-service -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/media-service -n ${{ env.NAMESPACE }} --timeout=300s
       
       - name: Run integration tests
         run: |
           echo "Running integration tests against staging environment"
-          # Add your integration test commands here
+          # Add integration test commands here
+      
+      - name: Verify monitoring setup
+        run: |
+          echo "Verifying Prometheus and Grafana are running"
+          kubectl get pods -n monitoring
+          kubectl get servicemonitors -n monitoring
 
   deploy-production:
     needs: deploy-staging
@@ -224,66 +258,33 @@ jobs:
       
       - name: Update Kubernetes manifests
         run: |
-          sed -i "s|image: .*frontend.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}|g" k8s-public/frontend-deployment.yaml
-          sed -i "s|image: .*api-gateway.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:${{ github.sha }}|g" k8s-public/api-gateway-deployment.yaml
-          sed -i "s|image: .*user-service.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/user-service:${{ github.sha }}|g" k8s-public/user-service-deployment.yaml
+          sed -i "s|image: .*frontend.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}|g" k8s/overlays/prod/frontend-deployment.yaml
+          sed -i "s|image: .*api-gateway.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:${{ github.sha }}|g" k8s/overlays/prod/api-gateway-deployment.yaml
+          sed -i "s|image: .*user-service.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/user-service:${{ github.sha }}|g" k8s/overlays/prod/user-service-deployment.yaml
+          sed -i "s|image: .*content-service.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/content-service:${{ github.sha }}|g" k8s/overlays/prod/content-service-deployment.yaml
+          sed -i "s|image: .*media-service.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/media-service:${{ github.sha }}|g" k8s/overlays/prod/media-service-deployment.yaml
       
       - name: Deploy to AKS
         run: |
-          kubectl apply -f k8s-public/config.yaml
-          kubectl apply -f k8s-public/frontend-deployment.yaml
-          kubectl apply -f k8s-public/api-gateway-deployment.yaml
-          kubectl apply -f k8s-public/user-service-deployment.yaml
+          kubectl apply -f k8s/overlays/prod/config.yaml
+          kubectl apply -f k8s/overlays/prod/frontend-deployment.yaml
+          kubectl apply -f k8s/overlays/prod/api-gateway-deployment.yaml
+          kubectl apply -f k8s/overlays/prod/user-service-deployment.yaml
+          kubectl apply -f k8s/overlays/prod/content-service-deployment.yaml
+          kubectl apply -f k8s/overlays/prod/media-service-deployment.yaml
+          kubectl apply -f k8s/overlays/prod/ingress.yaml
           
-          # Update ingress for production
-          cat <<EOF | kubectl apply -f -
-          apiVersion: networking.k8s.io/v1
-          kind: Ingress
-          metadata:
-            name: inspira-ingress
-            namespace: ${{ env.NAMESPACE }}
-            annotations:
-              kubernetes.io/ingress.class: nginx
-              nginx.ingress.kubernetes.io/rewrite-target: /\$1
-              nginx.ingress.kubernetes.io/use-regex: "true"
-              cert-manager.io/cluster-issuer: "letsencrypt-prod"
-          spec:
-            tls:
-            - hosts:
-              - ${{ env.PRODUCTION_DOMAIN }}
-              secretName: inspira-prod-tls-cert
-            rules:
-            - host: ${{ env.PRODUCTION_DOMAIN }}
-              http:
-                paths:
-                - path: /api/gateway/?(.*)
-                  pathType: Prefix
-                  backend:
-                    service:
-                      name: api-gateway
-                      port:
-                        number: 80
-                - path: /api/users/?(.*)
-                  pathType: Prefix
-                  backend:
-                    service:
-                      name: user-service
-                      port:
-                        number: 80
-                - path: /(.*)
-                  pathType: Prefix
-                  backend:
-                    service:
-                      name: frontend
-                      port:
-                        number: 80
-          EOF
+          # Apply monitoring configurations
+          kubectl apply -f k8s/base/service-monitors.yaml
+          kubectl apply -f k8s/base/horizontal-pod-autoscalers.yaml
       
       - name: Verify deployment
         run: |
           kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=300s
           kubectl rollout status deployment/api-gateway -n ${{ env.NAMESPACE }} --timeout=300s
           kubectl rollout status deployment/user-service -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/content-service -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/media-service -n ${{ env.NAMESPACE }} --timeout=300s
       
       - name: Post-deployment health check
         run: |
@@ -294,10 +295,24 @@ jobs:
           curl -s -o /dev/null -w "%{http_code}" http://${{ env.PRODUCTION_DOMAIN }}/ | grep 200
           
           # Check API Gateway
-          curl -s -o /dev/null -w "%{http_code}" http://${{ env.PRODUCTION_DOMAIN }}/api/gateway/ | grep 200
+          curl -s -o /dev/null -w "%{http_code}" http://${{ env.PRODUCTION_DOMAIN }}/api/gateway/health | grep 200
           
           # Check User Service
-          curl -s -o /dev/null -w "%{http_code}" http://${{ env.PRODUCTION_DOMAIN }}/api/users/ | grep 200
+          curl -s -o /dev/null -w "%{http_code}" http://${{ env.PRODUCTION_DOMAIN }}/api/users/health | grep 200
+          
+          # Check Content Service
+          curl -s -o /dev/null -w "%{http_code}" http://${{ env.PRODUCTION_DOMAIN }}/api/content/health | grep 200
+          
+          # Check Media Service
+          curl -s -o /dev/null -w "%{http_code}" http://${{ env.PRODUCTION_DOMAIN }}/api/media/health | grep 200
+      
+      - name: Verify monitoring and autoscaling
+        run: |
+          echo "Verifying Prometheus and Grafana are running"
+          kubectl get pods -n monitoring
+          
+          echo "Verifying HPAs are configured"
+          kubectl get hpa -n ${{ env.NAMESPACE }}
       
       - name: Notify deployment success
         if: success()

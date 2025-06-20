@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   inspira-network:
     driver: bridge
@@ -13,7 +11,7 @@ services:
       POSTGRES_PASSWORD: user_pw
       POSTGRES_DB: users
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - postgres_users_data:/var/lib/postgresql/data
     networks:
@@ -129,7 +127,7 @@ services:
       LOGGING_LEVEL_COM_INSPIRA: DEBUG
       SERVER_PORT: 8080
     ports:
-      - "8080:8080"
+      - "8083:8080"
     networks:
       - inspira-network
     depends_on:

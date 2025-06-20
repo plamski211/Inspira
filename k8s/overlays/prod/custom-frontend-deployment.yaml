@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-custom
+  namespace: microservices
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend-custom
+  template:
+    metadata:
+      labels:
+        app: frontend-custom
+    spec:
+      containers:
+      - name: frontend
+        image: pngbanks/frontend:custom
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-custom
+  namespace: microservices
+spec:
+  selector:
+    app: frontend-custom
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP

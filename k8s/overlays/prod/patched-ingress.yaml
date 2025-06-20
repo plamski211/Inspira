@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/cors-allow-origin: '*'
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  name: inspira-ingress
+  namespace: microservices
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: api-gateway
+            port:
+              number: 80
+        path: /api/gateway/?(.*)
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: user-service
+            port:
+              number: 80
+        path: /api/users/?(.*)
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: content-service
+            port:
+              number: 80
+        path: /api/content/?(.*)
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: media-service
+            port:
+              number: 80
+        path: /api/media/?(.*)
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: frontend-new-service
+            port:
+              number: 80
+        path: /(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - inspira.local
+    secretName: inspira-tls 

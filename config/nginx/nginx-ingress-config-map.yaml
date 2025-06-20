@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-ingress-controller-config
+  namespace: ingress-basic
+data:
+  use-forwarded-headers: "true"
+  compute-full-forwarded-for: "true"
+  use-proxy-protocol: "false"
+  http-snippet: |
+    map $http_accept $best_http_accept {
+        default $http_accept;
+        ~*application/json application/json;
+        ~*text/html text/html;
+    }
+  server-snippet: |
+    location ~* \.js$ {
+        default_type application/javascript;
+        add_header Content-Type application/javascript;
+    }
+    location ~* \.css$ {
+        default_type text/css;
+        add_header Content-Type text/css;
+    }
+  proxy-set-headers: "ingress-basic/custom-headers"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-headers
+  namespace: ingress-basic
+data:
+  X-Content-Type-Options: "nosniff" 

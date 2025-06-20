@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inspira Project</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    header {
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+    
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #0070f3;
+    }
+    
+    nav ul {
+      display: flex;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    
+    nav li {
+      margin-left: 1.5rem;
+    }
+    
+    nav a {
+      color: #333;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    nav a:hover {
+      color: #0070f3;
+    }
+    
+    main {
+      margin-top: 5rem;
+      flex: 1;
+      padding: 2rem;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+      width: 100%;
+    }
+    
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    
+    .hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .hero p {
+      font-size: 1.2rem;
+      color: #666;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .card {
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-image {
+      width: 100%;
+      height: 200px;
+      background-color: #e0e0e0;
+    }
+    
+    .card-content {
+      padding: 1.5rem;
+    }
+    
+    .card h3 {
+      margin-top: 0;
+    }
+    
+    .card p {
+      color: #666;
+    }
+    
+    footer {
+      background-color: #ffffff;
+      padding: 2rem;
+      text-align: center;
+      color: #666;
+      border-top: 1px solid #eaeaea;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">Inspira</div>
+      <nav>
+        <ul>
+          <li><a href="#">Home</a></li>
+          <li><a href="#">Explore</a></li>
+          <li><a href="#">Upload</a></li>
+          <li><a href="#">Profile</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  
+  <main>
+    <section class="hero">
+      <h1>Welcome to Inspira</h1>
+      <p>A platform for creative inspiration and content sharing.</p>
+    </section>
+    
+    <section class="card-grid">
+      <div class="card">
+        <div class="card-image"></div>
+        <div class="card-content">
+          <h3>Creative Design</h3>
+          <p>Explore creative design concepts and ideas from around the world.</p>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-image"></div>
+        <div class="card-content">
+          <h3>Photography</h3>
+          <p>Stunning photography from professional and amateur photographers.</p>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-image"></div>
+        <div class="card-content">
+          <h3>Digital Art</h3>
+          <p>Digital art creations that push the boundaries of imagination.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <footer>
+    <p>© 2023 Inspira Project. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // This is a simple script to demonstrate that JavaScript is working
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Inspira frontend is loaded successfully!');
+      
+      // Add some dynamic behavior to the cards
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          alert('Card clicked! In the full app, this would take you to the detail page.');
+        });
+      });
+    });
+  </script>
+</body>
+</html> 

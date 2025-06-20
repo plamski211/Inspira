@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIME Type Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-box {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+    <script>
+        window.onload = function() {
+            // Test if JavaScript is working
+            document.getElementById('js-test').textContent = 'JavaScript is working!';
+            document.getElementById('js-test').className = 'success';
+            
+            // Display environment info if available
+            if (window.ENV) {
+                document.getElementById('env-info').textContent = JSON.stringify(window.ENV, null, 2);
+                document.getElementById('env-status').textContent = 'Environment config loaded!';
+                document.getElementById('env-status').className = 'success';
+            } else {
+                document.getElementById('env-status').textContent = 'Environment config not found!';
+                document.getElementById('env-status').className = 'error';
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>MIME Type Test Page</h1>
+    <p>This page checks if CSS and JavaScript are working correctly.</p>
+    
+    <div class="test-box">
+        <h2>CSS Test</h2>
+        <p>If you see this text with styling (like borders around this box), CSS is working.</p>
+    </div>
+    
+    <div class="test-box">
+        <h2>JavaScript Test</h2>
+        <p id="js-test">JavaScript is not working!</p>
+    </div>
+    
+    <div class="test-box">
+        <h2>Environment Config Test</h2>
+        <p id="env-status">Checking environment...</p>
+        <pre id="env-info">No environment data available</pre>
+    </div>
+</body>
+</html> 

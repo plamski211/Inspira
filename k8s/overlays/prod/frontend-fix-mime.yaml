@@ -1,0 +1,141 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-fixed
+  namespace: microservices
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend-fixed
+  template:
+    metadata:
+      labels:
+        app: frontend-fixed
+    spec:
+      containers:
+      - name: frontend
+        image: pngbanks/frontend:prod
+        ports:
+        - containerPort: 80
+        env:
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: nginx-conf
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: env-config
+          mountPath: /usr/share/nginx/html/env-config.js
+          subPath: env-config.js
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: nginx-conf-fixed
+      - name: env-config
+        configMap:
+          name: frontend-env-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-fixed
+  namespace: microservices
+spec:
+  selector:
+    app: frontend-fixed
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf-fixed
+  namespace: microservices
+data:
+  nginx.conf: |
+    user  nginx;
+    worker_processes  auto;
+    
+    error_log  /var/log/nginx/error.log notice;
+    pid        /var/run/nginx.pid;
+    
+    events {
+        worker_connections  1024;
+    }
+    
+    http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+    
+        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for"';
+    
+        access_log  /var/log/nginx/access.log  main;
+    
+        sendfile        on;
+        #tcp_nopush     on;
+    
+        keepalive_timeout  65;
+    
+        #gzip  on;
+        
+        # Add specific MIME types
+        types {
+            application/javascript    js;
+            text/css                  css;
+        }
+        
+        server {
+            listen 80;
+            server_name _;
+            root /usr/share/nginx/html;
+            index index.html;
+            
+            # Serve static files
+            location / {
+                try_files $uri $uri/ /index.html;
+                add_header 'Access-Control-Allow-Origin' '*';
+            }
+            
+            # JavaScript files
+            location ~* \.js$ {
+                try_files $uri =404;
+                add_header Content-Type application/javascript;
+            }
+            
+            # CSS files
+            location ~* \.css$ {
+                try_files $uri =404;
+                add_header Content-Type text/css;
+            }
+            
+            # Asset files
+            location /assets/ {
+                try_files $uri =404;
+            }
+    
+            # Handle API requests
+            location /api/ {
+                proxy_pass http://api-gateway;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_cache_bypass $http_upgrade;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+        }
+    } 

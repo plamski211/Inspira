@@ -1,0 +1,166 @@
+name: Deploy Microservices
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'api-gateway/**'
+      - 'user-service/**'
+      - 'content-service/**'
+      - 'media-service/**'
+      - 'frontend/**'
+      - 'k8s-public/**'
+      - '.github/workflows/deploy-microservices.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ${{ secrets.REGISTRY_URL }}
+  REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+        
+      - name: Log in to container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USERNAME }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+          
+      - name: Set environment variables
+        run: |
+          if [[ "${{ github.event.inputs.environment }}" == "production" ]]; then
+            echo "TAG=prod-${{ github.sha }}" >> $GITHUB_ENV
+            echo "NAMESPACE=microservices-prod" >> $GITHUB_ENV
+          else
+            echo "TAG=staging-${{ github.sha }}" >> $GITHUB_ENV
+            echo "NAMESPACE=microservices" >> $GITHUB_ENV
+          fi
+          
+      - name: Build and push API Gateway image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./api-gateway
+          push: true
+          tags: ${{ env.REGISTRY }}/api-gateway:${{ env.TAG }}
+          
+      - name: Build and push User Service image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./user-service
+          push: true
+          tags: ${{ env.REGISTRY }}/user-service:${{ env.TAG }}
+          
+      - name: Build and push Content Service image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./content-service
+          push: true
+          tags: ${{ env.REGISTRY }}/content-service:${{ env.TAG }}
+          
+      - name: Build and push Media Service image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./media-service
+          push: true
+          tags: ${{ env.REGISTRY }}/media-service:${{ env.TAG }}
+          
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile.prod
+          push: true
+          tags: ${{ env.REGISTRY }}/frontend:${{ env.TAG }}
+          
+      - name: Set up kubectl
+        uses: azure/k8s-set-context@v1
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+          
+      - name: Create namespace if not exists
+        run: |
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          
+      - name: Deploy database services
+        run: |
+          kubectl apply -f k8s-public/postgres-deployments.yaml -n ${{ env.NAMESPACE }}
+          kubectl apply -f k8s-public/minio-deployment.yaml -n ${{ env.NAMESPACE }}
+          
+      - name: Create secrets
+        run: |
+          kubectl apply -f k8s-public/secrets.yaml -n ${{ env.NAMESPACE }}
+          
+      - name: Update deployment manifests
+        run: |
+          sed -i "s|image:.*api-gateway.*|image: ${{ env.REGISTRY }}/api-gateway:${{ env.TAG }}|g" k8s-public/api-gateway-deployment.yaml
+          sed -i "s|image:.*user-service.*|image: ${{ env.REGISTRY }}/user-service:${{ env.TAG }}|g" k8s-public/user-service-deployment.yaml
+          sed -i "s|image:.*content-service.*|image: ${{ env.REGISTRY }}/content-service:${{ env.TAG }}|g" k8s-public/content-service-deployment.yaml
+          sed -i "s|image:.*media-service.*|image: ${{ env.REGISTRY }}/media-service:${{ env.TAG }}|g" k8s-public/media-service-deployment.yaml
+          sed -i "s|image:.*frontend.*|image: ${{ env.REGISTRY }}/frontend:${{ env.TAG }}|g" k8s-public/frontend-deployment.yaml
+          
+      - name: Deploy microservices
+        run: |
+          kubectl apply -f k8s-public/api-gateway-deployment.yaml -n ${{ env.NAMESPACE }}
+          kubectl apply -f k8s-public/user-service-deployment.yaml -n ${{ env.NAMESPACE }}
+          kubectl apply -f k8s-public/content-service-deployment.yaml -n ${{ env.NAMESPACE }}
+          kubectl apply -f k8s-public/media-service-deployment.yaml -n ${{ env.NAMESPACE }}
+          kubectl apply -f k8s-public/frontend-deployment.yaml -n ${{ env.NAMESPACE }}
+          
+      - name: Deploy ingress
+        run: |
+          kubectl apply -f k8s-public/ingress-tls.yaml -n ${{ env.NAMESPACE }}
+          
+      - name: Deploy monitoring
+        run: |
+          kubectl apply -f k8s-public/service-monitors.yaml -n ${{ env.NAMESPACE }}
+          
+      - name: Deploy autoscaling
+        run: |
+          kubectl apply -f k8s-public/horizontal-pod-autoscalers.yaml -n ${{ env.NAMESPACE }}
+          
+      - name: Apply resource quotas
+        run: |
+          kubectl apply -f k8s-public/resource-quota.yaml -n ${{ env.NAMESPACE }}
+          
+      - name: Apply network policies
+        run: |
+          kubectl apply -f k8s-public/network-policy.yaml -n ${{ env.NAMESPACE }}
+          
+      - name: Deploy external services
+        run: |
+          kubectl apply -f k8s-public/external-services.yaml -n ${{ env.NAMESPACE }}
+          
+      - name: Wait for deployments to be ready
+        run: |
+          kubectl rollout status deployment/api-gateway -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/user-service -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/content-service -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/media-service -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=300s
+          
+      - name: Get service endpoints
+        run: |
+          echo "Ingress IP: $(kubectl get ingress inspira-ingress -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+          echo "API Gateway External IP: $(kubectl get service api-gateway-external -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo 'pending')"
+          echo "Frontend External IP: $(kubectl get service frontend-external -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo 'pending')"
+          echo "MinIO External IP: $(kubectl get service minio-external -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo 'pending')" 

@@ -1,0 +1,15 @@
+=========================================
+Starting Load Test with the following parameters:
+- Duration: 300 seconds
+- Concurrent Users: 50
+- Ramp-up Period: 60 seconds
+- Target: http://4.156.37.48:80
+=========================================
+Running JMeter test...
+WARNING: package sun.awt.X11 not in java.desktop
+WARN StatusConsoleListener The use of package scanning to locate plugins is deprecated and will be removed in a future release
+WARN StatusConsoleListener The use of package scanning to locate plugins is deprecated and will be removed in a future release
+WARN StatusConsoleListener The use of package scanning to locate plugins is deprecated and will be removed in a future release
+WARN StatusConsoleListener The use of package scanning to locate plugins is deprecated and will be removed in a future release
+Error in NonGUIDriver com.thoughtworks.xstream.io.StreamException: 
+An error occurred: Error in NonGUIDriver 
