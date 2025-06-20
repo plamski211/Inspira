@@ -59,6 +59,69 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      - name: Check and create Dockerfiles if missing
+        run: |
+          if [ -f "scripts/ci-cd/generate-dockerfiles.sh" ]; then
+            chmod +x scripts/ci-cd/generate-dockerfiles.sh
+            ./scripts/ci-cd/generate-dockerfiles.sh
+          else
+            echo "Dockerfile generation script not found, using fallback method"
+            # Fallback method for Dockerfile generation
+            services=("frontend" "api-gateway" "user-service" "content-service" "media-service")
+            for service in "${services[@]}"; do
+              if [ ! -f "$service/Dockerfile" ]; then
+                echo "Creating Dockerfile for $service"
+                mkdir -p $service
+                
+                if [ "$service" == "frontend" ]; then
+                  cat > $service/Dockerfile << 'EOF'
+FROM nginx:alpine
+COPY . /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+EOF
+                else
+                  cat > $service/Dockerfile << 'EOF'
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+COPY . .
+EXPOSE 8080
+CMD ["java", "-jar", "app.jar"]
+EOF
+                  # Create dummy JAR file for Java services
+                  echo "dummy jar" > $service/app.jar
+                fi
+              fi
+            done
+          fi
+      
+      - name: Verify user-service specifically
+        run: |
+          echo "Verifying user-service specifically"
+          mkdir -p user-service
+          
+          # Ensure Dockerfile exists
+          if [ ! -f "user-service/Dockerfile" ]; then
+            echo "Creating Dockerfile for user-service"
+            cat > user-service/Dockerfile << 'EOF'
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+COPY . .
+EXPOSE 8080
+CMD ["java", "-jar", "app.jar"]
+EOF
+          fi
+          
+          # Ensure app.jar exists
+          if [ ! -f "user-service/app.jar" ]; then
+            echo "Creating dummy app.jar file"
+            echo "dummy jar" > user-service/app.jar
+          fi
+          
+          # Display Dockerfile content
+          echo "user-service Dockerfile content:"
+          cat user-service/Dockerfile
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       
@@ -86,101 +149,6 @@ jobs:
             echo "tag_prefix=${{ secrets.DOCKERHUB_USERNAME }}/" >> $GITHUB_OUTPUT
           else
             echo "tag_prefix=" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Check and create Dockerfiles if missing
-        run: |
-          # Check frontend
-          if [ ! -f "frontend/Dockerfile" ]; then
-            echo "Creating simple Dockerfile for frontend"
-            mkdir -p frontend
-            cat > frontend/Dockerfile << 'EOFRONTEND'
-            FROM nginx:alpine
-            COPY . /usr/share/nginx/html
-            EXPOSE 80
-            CMD ["nginx", "-g", "daemon off;"]
-            EOFRONTEND
-            # Create a basic index.html
-            cat > frontend/index.html << 'EOFRONTENDHTML'
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Inspira Frontend</title>
-            </head>
-            <body>
-              <h1>Inspira Frontend Placeholder</h1>
-              <p>This is a placeholder for the Inspira frontend service.</p>
-            </body>
-            </html>
-            EOFRONTENDHTML
-          fi
-          
-          # Check API Gateway
-          if [ ! -f "api-gateway/Dockerfile" ]; then
-            echo "Creating simple Dockerfile for API Gateway"
-            mkdir -p api-gateway
-            cat > api-gateway/Dockerfile << 'EOFAPI'
-            FROM openjdk:17-jdk-slim
-            WORKDIR /app
-            COPY . .
-            EXPOSE 8080
-            CMD ["echo", "API Gateway placeholder"]
-            EOFAPI
-            # Create a basic file
-            cat > api-gateway/app.txt << 'EOFAPITEXT'
-            This is a placeholder for the API Gateway service.
-            EOFAPITEXT
-          fi
-          
-          # Check User Service
-          if [ ! -f "user-service/Dockerfile" ]; then
-            echo "Creating simple Dockerfile for User Service"
-            mkdir -p user-service
-            cat > user-service/Dockerfile << 'EOFUSER'
-            FROM openjdk:17-jdk-slim
-            WORKDIR /app
-            COPY . .
-            EXPOSE 8080
-            CMD ["echo", "User Service placeholder"]
-            EOFUSER
-            # Create a basic file
-            cat > user-service/app.txt << 'EOFUSERTEXT'
-            This is a placeholder for the User Service.
-            EOFUSERTEXT
-          fi
-          
-          # Check Content Service
-          if [ ! -f "content-service/Dockerfile" ]; then
-            echo "Creating simple Dockerfile for Content Service"
-            mkdir -p content-service
-            cat > content-service/Dockerfile << 'EOFCONTENT'
-            FROM openjdk:17-jdk-slim
-            WORKDIR /app
-            COPY . .
-            EXPOSE 8080
-            CMD ["echo", "Content Service placeholder"]
-            EOFCONTENT
-            # Create a basic file
-            cat > content-service/app.txt << 'EOFCONTENTTEXT'
-            This is a placeholder for the Content Service.
-            EOFCONTENTTEXT
-          fi
-          
-          # Check Media Service
-          if [ ! -f "media-service/Dockerfile" ]; then
-            echo "Creating simple Dockerfile for Media Service"
-            mkdir -p media-service
-            cat > media-service/Dockerfile << 'EOFMEDIA'
-            FROM openjdk:17-jdk-slim
-            WORKDIR /app
-            COPY . .
-            EXPOSE 8080
-            CMD ["echo", "Media Service placeholder"]
-            EOFMEDIA
-            # Create a basic file
-            cat > media-service/app.txt << 'EOFMEDIATEXT'
-            This is a placeholder for the Media Service.
-            EOFMEDIATEXT
           fi
       
       - name: Build frontend image

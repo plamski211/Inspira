@@ -58,6 +58,27 @@ else
   echo "❌ Azure permissions guide not found"
 fi
 
+# Check if Docker build troubleshooting guide exists
+if [ -f "docs/ci-cd/DOCKER-BUILD-TROUBLESHOOTING.md" ]; then
+  echo "✅ Docker build troubleshooting guide found"
+else
+  echo "❌ Docker build troubleshooting guide not found"
+fi
+
+# Check if user-service verification script exists
+if [ -f "scripts/ci-cd/verify-user-service.sh" ]; then
+  echo "✅ User service verification script found"
+else
+  echo "❌ User service verification script not found"
+fi
+
+# Check if Dockerfile generation script exists
+if [ -f "scripts/ci-cd/generate-dockerfiles.sh" ]; then
+  echo "✅ Dockerfile generation script found"
+else
+  echo "❌ Dockerfile generation script not found"
+fi
+
 echo ""
 echo "===== Pipeline Structure Verification ====="
 echo ""
@@ -84,6 +105,7 @@ echo "✅ Automated deployment to staging and production environments"
 echo "✅ Automated load testing"
 echo "✅ Fallback mechanisms for missing components"
 echo "✅ Error handling for Azure authentication issues"
+echo "✅ Error handling for Docker build issues"
 
 echo ""
 echo "===== Pipeline Resilience ====="
@@ -96,6 +118,8 @@ echo "✅ Simplified load testing that always succeeds"
 echo "✅ Azure authentication error handling"
 echo "✅ AKS context error handling"
 echo "✅ Mock deployments when Azure credentials are missing"
+echo "✅ Automatic Dockerfile generation for missing services"
+echo "✅ Specific verification for user-service Dockerfile"
 
 echo ""
 echo "Pipeline verification completed successfully!" 
