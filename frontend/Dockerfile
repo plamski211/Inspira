@@ -6,8 +6,10 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with clean install and legacy peer deps
-RUN npm ci --legacy-peer-deps
+# Install dependencies with fallbacks
+RUN npm install --no-package-lock --legacy-peer-deps || \
+    npm install --no-package-lock || \
+    npm install --force
 
 # Copy source code
 COPY . .
