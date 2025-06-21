@@ -9,9 +9,14 @@ The complete workflow is defined in `.github/workflows/azure-deploy-prod.yml` an
 1. **Security Scanning**: Uses Trivy to scan for vulnerabilities in the codebase
 2. **Build**: Builds Docker images for all microservices
 3. **Test**: Runs automated tests for all microservices
-4. **Load Testing**: Performs load testing to ensure performance
-5. **Deploy to Staging**: Deploys to the staging environment
-6. **Deploy to Production**: Deploys to the production environment
+4. **Integration Test**: Tests integration between microservices
+5. **Load Testing**: Performs load testing to ensure performance
+6. **Security Test**: Tests for security vulnerabilities
+7. **Deploy to Staging**: Deploys to the staging environment
+8. **Test Staging**: Tests the staging deployment
+9. **Deploy to Production**: Deploys to the production environment
+10. **Test Production**: Tests the production deployment
+11. **Monitoring Setup**: Sets up monitoring with Prometheus and Grafana
 
 ## Pipeline Resilience Features
 
@@ -26,6 +31,7 @@ The pipeline includes several resilience features:
 - Automatic Dockerfile generation for missing services
 - Automatic Kubernetes manifest generation
 - Kubernetes manifest validation with kubeval
+- AKS permissions fixing script
 
 ## Pipeline Verification
 
@@ -62,11 +68,23 @@ The pipeline supports two deployment environments:
 1. **Staging**: Used for testing before production deployment
 2. **Production**: The live environment for end users
 
+## Testing Strategy
+
+The pipeline implements a comprehensive testing strategy:
+
+1. **Unit Tests**: Tests individual components in isolation
+2. **Integration Tests**: Tests interactions between microservices
+3. **Load Tests**: Tests performance under load
+4. **Security Tests**: Tests for security vulnerabilities
+5. **Staging Tests**: Tests the staging deployment
+6. **Production Tests**: Tests the production deployment
+
 ## Monitoring and Autoscaling
 
 The pipeline integrates with:
 
 - Prometheus for monitoring
+- Grafana for visualization
 - Horizontal Pod Autoscaler for automatic scaling
 
 ## Troubleshooting

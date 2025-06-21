@@ -16,7 +16,7 @@ else
 fi
 
 # Check if the pipeline includes all required stages
-required_stages=("security-scan" "build" "test" "load-test" "deploy-staging" "deploy-production")
+required_stages=("security-scan" "build" "test" "integration-test" "load-test" "security-test" "deploy-staging" "test-staging" "deploy-production" "test-production" "monitoring-setup")
 missing_stages=()
 
 pipeline_file=""

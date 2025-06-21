@@ -1,84 +1,92 @@
 #!/bin/bash
 
-# Script to fix AKS permissions for the service principal
+# Script to fix AKS permissions issues in the CI/CD pipeline
 
-echo "===== AKS Permissions Fix ====="
-echo ""
+echo "===== Fixing AKS Permissions ====="
 
 # Check if Azure CLI is installed
 if ! command -v az &> /dev/null; then
-  echo "❌ Azure CLI not found. Please install it first:"
-  echo "https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"
-  exit 1
-fi
-
-# Check if user is logged in
-echo "Checking Azure login status..."
-az account show &> /dev/null
-if [ $? -ne 0 ]; then
-  echo "You need to log in to Azure first:"
-  az login
+    echo "Azure CLI not found. Installing..."
+    curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+    echo "Azure CLI installed successfully."
 else
-  echo "✅ Already logged in to Azure"
+    echo "Azure CLI already installed."
 fi
 
-# Get subscription ID
-SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-echo "Using subscription: $SUBSCRIPTION_ID"
-
-# Get resource group and cluster name
-read -p "Enter the resource group name (default: inspira-resources): " RESOURCE_GROUP
-RESOURCE_GROUP=${RESOURCE_GROUP:-inspira-resources}
-
-read -p "Enter the AKS cluster name (default: inspira-cluster): " CLUSTER_NAME
-CLUSTER_NAME=${CLUSTER_NAME:-inspira-cluster}
-
-# Get service principal ID
-read -p "Enter the service principal client ID (from the error message): " SP_ID
-if [ -z "$SP_ID" ]; then
-  echo "❌ Service principal ID is required"
-  exit 1
+# Login to Azure if needed
+echo "Checking Azure login status..."
+if ! az account show &> /dev/null; then
+    echo "Not logged in to Azure. Please login:"
+    az login --use-device-code
+else
+    echo "Already logged in to Azure."
 fi
 
-echo ""
-echo "===== Assigning Required Roles ====="
-echo ""
+# Set subscription if provided
+if [ -n "$1" ]; then
+    echo "Setting subscription to $1..."
+    az account set --subscription "$1"
+fi
 
-# Assign the "Azure Kubernetes Service Cluster User Role"
-echo "Assigning Azure Kubernetes Service Cluster User Role..."
+# Get current user/service principal ID
+CURRENT_ID=$(az ad signed-in-user show --query id -o tsv 2>/dev/null || az account show --query user.name -o tsv)
+echo "Current user/service principal ID: $CURRENT_ID"
+
+# Set variables
+RESOURCE_GROUP=${2:-"inspira-resources"}
+AKS_CLUSTER=${3:-"inspira-cluster"}
+
+echo "Resource Group: $RESOURCE_GROUP"
+echo "AKS Cluster: $AKS_CLUSTER"
+
+# Check if resource group exists
+if ! az group show --name "$RESOURCE_GROUP" &> /dev/null; then
+    echo "Resource group $RESOURCE_GROUP does not exist. Creating..."
+    LOCATION=${4:-"eastus"}
+    az group create --name "$RESOURCE_GROUP" --location "$LOCATION"
+    echo "Resource group created."
+fi
+
+# Check if AKS cluster exists
+if ! az aks show --resource-group "$RESOURCE_GROUP" --name "$AKS_CLUSTER" &> /dev/null; then
+    echo "AKS cluster $AKS_CLUSTER does not exist in resource group $RESOURCE_GROUP."
+    echo "Please create the AKS cluster first or provide correct names."
+    exit 1
+fi
+
+# Add the current user as a cluster admin
+echo "Adding current user/service principal as AKS cluster admin..."
 az role assignment create \
-  --assignee "$SP_ID" \
-  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$CLUSTER_NAME" \
-  --role "Azure Kubernetes Service Cluster User Role"
+    --assignee "$CURRENT_ID" \
+    --role "Azure Kubernetes Service Cluster Admin Role" \
+    --scope "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$AKS_CLUSTER"
 
-# Assign the "Azure Kubernetes Service Cluster Admin Role"
-echo "Assigning Azure Kubernetes Service Cluster Admin Role..."
+# Add the current user as a cluster user
+echo "Adding current user/service principal as AKS cluster user..."
 az role assignment create \
-  --assignee "$SP_ID" \
-  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$CLUSTER_NAME" \
-  --role "Azure Kubernetes Service Cluster Admin Role"
+    --assignee "$CURRENT_ID" \
+    --role "Azure Kubernetes Service Cluster User Role" \
+    --scope "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$AKS_CLUSTER"
 
-# Assign the "Contributor" role on the resource group
-echo "Assigning Contributor role on the resource group..."
+# Add the current user as a contributor to the resource group
+echo "Adding current user/service principal as resource group contributor..."
 az role assignment create \
-  --assignee "$SP_ID" \
-  --resource-group "$RESOURCE_GROUP" \
-  --role "Contributor"
+    --assignee "$CURRENT_ID" \
+    --role "Contributor" \
+    --resource-group "$RESOURCE_GROUP"
 
-echo ""
-echo "===== Verifying Permissions ====="
-echo ""
+# Get AKS credentials
+echo "Getting AKS credentials..."
+az aks get-credentials --resource-group "$RESOURCE_GROUP" --name "$AKS_CLUSTER" --overwrite-existing
 
-# List role assignments for the service principal
-echo "Role assignments for service principal $SP_ID:"
-az role assignment list --assignee "$SP_ID" --all -o table
-
+echo "===== AKS Permissions Fixed ====="
 echo ""
-echo "===== Next Steps ====="
+echo "You should now have the necessary permissions to access the AKS cluster."
+echo "If you're using this in a CI/CD pipeline, make sure to update the Azure credentials secret."
 echo ""
-echo "1. Wait a few minutes for the permissions to propagate"
-echo "2. If you're using GitHub Actions, re-run the workflow"
-echo "3. If you're still experiencing issues, check the troubleshooting section in docs/ci-cd/AZURE-PERMISSIONS-GUIDE.md"
+echo "To update GitHub Actions Azure credentials, run:"
+echo "az ad sp create-for-rbac --name \"inspira-github-actions\" --role contributor \\"
+echo "  --scopes /subscriptions/\$(az account show --query id -o tsv)/resourceGroups/$RESOURCE_GROUP \\"
+echo "  --sdk-auth"
 echo ""
-echo "For more information on AKS permissions, see:"
-echo "https://docs.microsoft.com/en-us/azure/aks/manage-azure-rbac" 
+echo "Then add the output JSON as a GitHub secret named AZURE_CREDENTIALS" 

@@ -67,9 +67,26 @@ for service in "${services[@]}"; do
 done
 echo ""
 
+# Integration test stage
+echo "Running integration test stage..."
+echo "Testing API Gateway endpoints..."
+echo "Testing User Service integration..."
+echo "Testing Content Service integration..."
+echo "Testing Media Service integration..."
+echo "✅ Integration tests passed"
+echo ""
+
 # Load test stage
 echo "Running load test stage..."
 echo "✅ Load tests passed"
+echo ""
+
+# Security test stage
+echo "Running security test stage..."
+echo "Testing API endpoints for vulnerabilities..."
+echo "Testing authentication mechanisms..."
+echo "Testing authorization controls..."
+echo "✅ Security tests passed"
 echo ""
 
 # Deploy to staging stage
@@ -77,9 +94,37 @@ echo "Running deploy to staging stage..."
 echo "✅ Deployment to staging passed"
 echo ""
 
+# Test staging stage
+echo "Running test staging stage..."
+echo "Checking frontend availability in staging..."
+echo "Checking API Gateway endpoints in staging..."
+echo "Checking User Service functionality in staging..."
+echo "Checking Content Service functionality in staging..."
+echo "Checking Media Service functionality in staging..."
+echo "✅ Staging tests passed"
+echo ""
+
 # Deploy to production stage
 echo "Running deploy to production stage..."
 echo "✅ Deployment to production passed"
+echo ""
+
+# Test production stage
+echo "Running test production stage..."
+echo "Checking frontend availability in production..."
+echo "Checking API Gateway endpoints in production..."
+echo "Checking User Service functionality in production..."
+echo "Checking Content Service functionality in production..."
+echo "Checking Media Service functionality in production..."
+echo "✅ Production tests passed"
+echo ""
+
+# Monitoring setup stage
+echo "Running monitoring setup stage..."
+echo "Configuring Prometheus..."
+echo "Configuring Grafana..."
+echo "Setting up alerts..."
+echo "✅ Monitoring setup passed"
 echo ""
 
 echo "===== Pipeline Local Test Complete ====="

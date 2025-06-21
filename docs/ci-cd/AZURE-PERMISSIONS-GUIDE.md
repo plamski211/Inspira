@@ -1,144 +1,133 @@
-# Azure AKS Permissions Guide for CI/CD Pipeline
+# Azure Permissions Guide for CI/CD Pipeline
 
-This guide explains how to fix permission issues when deploying to Azure Kubernetes Service (AKS) from your CI/CD pipeline.
+This guide explains the Azure permissions required for the CI/CD pipeline to deploy to Azure Kubernetes Service (AKS).
 
-## Common Error
+## Common Permission Errors
 
-The following error occurs when the service principal used in your GitHub Actions workflow doesn't have sufficient permissions to access the AKS cluster:
+### AuthorizationFailed Error
+
+If you see an error like this:
 
 ```
-ERROR: (AuthorizationFailed) The client '...' with object id '...' does not have authorization to perform action 'Microsoft.ContainerService/managedClusters/listClusterUserCredential/action' over scope '/subscriptions/.../resourceGroups/.../providers/Microsoft.ContainerService/managedClusters/...' or the scope is invalid. If access was recently granted, please refresh your credentials.
+ERROR: (AuthorizationFailed) The client '9285ee66-0202-4672-bb23-847cd9701b59' with object id '9285ee66-0202-4672-bb23-847cd9701b59' does not have authorization to perform action 'Microsoft.ContainerService/managedClusters/listClusterUserCredential/action' over scope '/subscriptions/0e46a8f2-8dd8-4c4e-841f-94a20add816d/resourceGroups/inspira-resources/providers/Microsoft.ContainerService/managedClusters/inspira-cluster' or the scope is invalid. If access was recently granted, please refresh your credentials.
 ```
 
-## Quick Solution
+This means the service principal or user account used by the CI/CD pipeline doesn't have the necessary permissions to access the AKS cluster.
 
-Run our automated fix script:
+## Required Permissions
+
+The service principal or user account used by the CI/CD pipeline needs the following permissions:
+
+1. **Azure Kubernetes Service Cluster User Role**: Allows getting credentials to access the cluster
+2. **Azure Kubernetes Service Cluster Admin Role**: Allows administrative actions on the cluster
+3. **Contributor Role**: Allows managing resources in the resource group
+
+## Fixing Permission Issues
+
+### Using the Fix Script
+
+We've provided a script to fix permission issues automatically:
 
 ```bash
+# Run the script with default values
 ./scripts/ci-cd/fix-aks-permissions.sh
+
+# Or specify subscription, resource group, and cluster name
+./scripts/ci-cd/fix-aks-permissions.sh "your-subscription-id" "your-resource-group" "your-cluster-name"
 ```
 
-This script will:
-1. Prompt for your resource group name, cluster name, and service principal ID
-2. Assign the necessary roles to the service principal
-3. Verify the role assignments
+### Manual Steps
 
-## Manual Solution
+If you prefer to fix permissions manually:
 
-### 1. Create a Service Principal with Proper Permissions
+1. **Identify the Service Principal ID**:
+   - For GitHub Actions, it's the client ID from the error message
+   - For Azure DevOps, it's the service connection's service principal
 
-Run the following commands to create a service principal and assign it the necessary permissions:
+2. **Assign the Required Roles**:
+   ```bash
+   # Get your subscription ID
+   SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+   
+   # Set your resource group and cluster name
+   RESOURCE_GROUP="inspira-resources"
+   CLUSTER_NAME="inspira-cluster"
+   
+   # Set the service principal ID
+   SP_ID="the-service-principal-id"
+   
+   # Assign the Azure Kubernetes Service Cluster User Role
+   az role assignment create \
+     --assignee "$SP_ID" \
+     --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$CLUSTER_NAME" \
+     --role "Azure Kubernetes Service Cluster User Role"
+   
+   # Assign the Azure Kubernetes Service Cluster Admin Role
+   az role assignment create \
+     --assignee "$SP_ID" \
+     --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$CLUSTER_NAME" \
+     --role "Azure Kubernetes Service Cluster Admin Role"
+   
+   # Assign the Contributor role on the resource group
+   az role assignment create \
+     --assignee "$SP_ID" \
+     --resource-group "$RESOURCE_GROUP" \
+     --role "Contributor"
+   ```
 
-```bash
-# Login to Azure
-az login
+## Setting Up GitHub Actions Azure Credentials
 
-# Create a service principal
-SP=$(az ad sp create-for-rbac --name "github-actions-inspira" --role Contributor --sdk-auth)
+To set up Azure credentials for GitHub Actions:
 
-# Get the service principal ID
-SP_ID=$(echo $SP | jq -r .clientId)
+1. **Create a Service Principal**:
+   ```bash
+   az ad sp create-for-rbac --name "inspira-github-actions" \
+     --role contributor \
+     --scopes /subscriptions/$(az account show --query id -o tsv)/resourceGroups/inspira-resources \
+     --sdk-auth
+   ```
 
-# Get your subscription ID
-SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+2. **Add the Output JSON as a GitHub Secret**:
+   - Copy the entire JSON output
+   - Go to your GitHub repository
+   - Navigate to Settings > Secrets > New repository secret
+   - Name: `AZURE_CREDENTIALS`
+   - Value: Paste the JSON output
 
-# Get your resource group name
-RESOURCE_GROUP="your-resource-group-name"
-
-# Get your AKS cluster name
-AKS_CLUSTER_NAME="your-aks-cluster-name"
-
-# Assign the "Azure Kubernetes Service Cluster User Role" to the service principal
-az role assignment create \
-  --assignee $SP_ID \
-  --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$AKS_CLUSTER_NAME \
-  --role "Azure Kubernetes Service Cluster User Role"
-
-# Assign the "Azure Kubernetes Service Cluster Admin Role" to the service principal
-az role assignment create \
-  --assignee $SP_ID \
-  --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$AKS_CLUSTER_NAME \
-  --role "Azure Kubernetes Service Cluster Admin Role"
-
-# Output the service principal credentials
-echo $SP
-```
-
-### 2. Add the Service Principal Credentials to GitHub Secrets
-
-1. Copy the entire JSON output from the last command.
-2. In your GitHub repository, go to Settings > Secrets and variables > Actions.
-3. Create a new repository secret named `AZURE_CREDENTIALS`.
-4. Paste the JSON output as the secret value.
-
-### 3. Set Up GitHub Variables
-
-In your GitHub repository, go to Settings > Secrets and variables > Actions > Variables and add:
-
-1. `AZURE_RESOURCE_GROUP` - The name of your Azure resource group
-2. `AKS_CLUSTER_NAME` - The name of your AKS cluster
-
-## Fixing Permissions for an Existing Service Principal
-
-If you already have a service principal but it's getting the authorization error:
-
-1. Extract the client ID from the error message (e.g., '9285ee66-0202-4672-bb23-847cd9701b59')
-2. Run the following commands:
-
-```bash
-# Login to Azure
-az login
-
-# Get your subscription ID
-SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-
-# Set your resource group and cluster name
-RESOURCE_GROUP="inspira-resources"  # Replace with your resource group name
-AKS_CLUSTER_NAME="inspira-cluster"  # Replace with your cluster name
-
-# Set the service principal ID from the error message
-SP_ID="9285ee66-0202-4672-bb23-847cd9701b59"  # Replace with your service principal ID
-
-# Assign the necessary roles
-az role assignment create \
-  --assignee $SP_ID \
-  --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$AKS_CLUSTER_NAME \
-  --role "Azure Kubernetes Service Cluster User Role"
-
-az role assignment create \
-  --assignee $SP_ID \
-  --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$AKS_CLUSTER_NAME \
-  --role "Azure Kubernetes Service Cluster Admin Role"
-```
-
-3. Wait a few minutes for the permissions to propagate
-4. Re-run your GitHub Actions workflow
-
-## Alternative: Using Managed Identity
-
-For production environments, consider using Azure Managed Identity instead of service principals for better security:
-
-1. Enable managed identity on your Azure resources.
-2. Configure your AKS cluster to use managed identity.
-3. Update your GitHub Actions workflow to use managed identity authentication.
+3. **Use the Credentials in GitHub Actions**:
+   ```yaml
+   - name: Azure login
+     uses: azure/login@v1
+     with:
+       creds: ${{ secrets.AZURE_CREDENTIALS }}
+   ```
 
 ## Troubleshooting
 
-If you still encounter permission issues:
+If you're still experiencing permission issues:
 
-1. Verify the service principal hasn't expired (they typically expire after 1 year).
-2. Check if the resource group or AKS cluster name has changed.
-3. Ensure the service principal has the correct role assignments.
-4. Try recreating the service principal with fresh credentials.
-5. Check for typos in resource group or cluster names.
-6. Ensure the subscription is active and not suspended.
+1. **Check Role Assignments**:
+   ```bash
+   az role assignment list --assignee "service-principal-id" --all -o table
+   ```
 
-## Pipeline Resilience
+2. **Verify Resource Group and Cluster Existence**:
+   ```bash
+   az group show --name "inspira-resources"
+   az aks show --resource-group "inspira-resources" --name "inspira-cluster"
+   ```
 
-Our CI/CD pipeline is designed to be resilient and will continue to run even if Azure authentication fails. It will:
+3. **Check for Typos in Resource Names**:
+   - Ensure the resource group and cluster names in your workflow match the actual names in Azure
 
-1. Attempt to authenticate with Azure using the provided credentials.
-2. If authentication fails, it will fall back to using mock deployments.
-3. Report the authentication status in the workflow logs.
+4. **Wait for Permissions to Propagate**:
+   - Azure RBAC changes can take a few minutes to propagate
 
-This ensures that the pipeline can still be used for demonstration and testing purposes without valid Azure credentials. 
+5. **Regenerate Service Principal**:
+   - If all else fails, create a new service principal and update your secrets
+
+## Additional Resources
+
+- [Azure RBAC Documentation](https://docs.microsoft.com/en-us/azure/role-based-access-control/overview)
+- [AKS RBAC Documentation](https://docs.microsoft.com/en-us/azure/aks/manage-azure-rbac)
+- [GitHub Actions with Azure](https://docs.microsoft.com/en-us/azure/developer/github/connect-from-github) 
