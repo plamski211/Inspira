@@ -67,19 +67,29 @@ jobs:
       with:
         resource-group: ${{ env.RESOURCE_GROUP }}
         cluster-name: ${{ env.AKS_CLUSTER }}
-    
-    - name: Update Kubernetes manifests
-      run: |
-        # Update image tags in manifests
-        sed -i "s|image: ${{ env.ACR_NAME }}.azurecr.io/api-gateway:.*|image: ${{ env.ACR_NAME }}.azurecr.io/api-gateway:${{ github.sha }}|g" k8s-azure/api-gateway-deployment.yaml
-        sed -i "s|image: ${{ env.ACR_NAME }}.azurecr.io/user-service:.*|image: ${{ env.ACR_NAME }}.azurecr.io/user-service:${{ github.sha }}|g" k8s-azure/user-service-deployment.yaml
-        sed -i "s|image: ${{ env.ACR_NAME }}.azurecr.io/frontend:.*|image: ${{ env.ACR_NAME }}.azurecr.io/frontend:${{ github.sha }}|g" k8s-azure/frontend-deployment.yaml
-    
-    - name: Deploy to AKS
+
+    - name: Create ACR pull secret
       run: |
         # Create namespace if it doesn't exist
         kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
         
+        # Create or update the ACR pull secret
+        kubectl create secret docker-registry acr-secret \
+          --namespace ${{ env.NAMESPACE }} \
+          --docker-server=${{ env.ACR_NAME }}.azurecr.io \
+          --docker-username=${{ secrets.ACR_USERNAME }} \
+          --docker-password=${{ secrets.ACR_PASSWORD }} \
+          --dry-run=client -o yaml | kubectl apply -f -
+    
+    - name: Update Kubernetes manifests
+      run: |
+        # Update image tags in manifests
+        sed -i "s|image: .*api-gateway:.*|image: ${{ env.ACR_NAME }}.azurecr.io/api-gateway:${{ github.sha }}|g" k8s-azure/api-gateway-deployment.yaml
+        sed -i "s|image: .*user-service:.*|image: ${{ env.ACR_NAME }}.azurecr.io/user-service:${{ github.sha }}|g" k8s-azure/user-service-deployment.yaml
+        sed -i "s|image: .*frontend:.*|image: ${{ env.ACR_NAME }}.azurecr.io/frontend:${{ github.sha }}|g" k8s-azure/frontend-deployment.yaml
+    
+    - name: Deploy to AKS
+      run: |
         # Apply Kubernetes manifests
         kubectl apply -f k8s-azure/ -n ${{ env.NAMESPACE }}
         

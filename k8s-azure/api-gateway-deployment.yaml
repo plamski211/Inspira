@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
       - name: api-gateway
-        image: nginx:alpine
+        image: ${ACR_NAME}.azurecr.io/api-gateway:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
         volumeMounts:
@@ -30,12 +31,27 @@ spec:
             port: 80
           initialDelaySeconds: 10
           periodSeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
         livenessProbe:
           httpGet:
             path: /health.html
             port: 80
           initialDelaySeconds: 15
           periodSeconds: 20
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+      imagePullSecrets:
+      - name: acr-secret
       volumes:
       - name: health-endpoint
         configMap:
@@ -115,3 +131,20 @@ data:
             root /usr/share/nginx/html;
         }
     }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-health
+  namespace: microservices
+data:
+  health.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>API Gateway Health Check</title>
+    </head>
+    <body>
+      <h1>API Gateway is healthy</h1>
+    </body>
+    </html>

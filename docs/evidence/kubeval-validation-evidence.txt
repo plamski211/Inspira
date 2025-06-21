@@ -1,6 +1,6 @@
 # Kubeval Validation Evidence
 
-**Date and Time:** 2025-06-20 22:49:39
+**Date and Time:** 2025-06-21 07:23:03
 
 ## System Information
 - OS: Darwin
@@ -36,9 +36,9 @@ PASS - k8s/base/external-services.yaml contains a valid Service (microservices.f
 PASS - k8s/base/external-services.yaml contains a valid Service (microservices.minio-external)
 PASS - k8s/base/external-services.yaml contains a valid Service (microservices.content-service-external)
 PASS - k8s/base/external-services.yaml contains a valid Service (microservices.media-service-external)
-PASS - k8s/base/frontend-deployment.yaml contains a valid Deployment (microservices.frontend-deployment)
-PASS - k8s/base/frontend-deployment.yaml contains a valid Service (microservices.frontend-service)
-PASS - k8s/base/frontend-deployment.yaml contains a valid Service (microservices.frontend-external)
+PASS - k8s/base/frontend-deployment.yaml contains a valid Deployment (default.frontend)
+PASS - k8s/base/frontend-deployment.yaml contains a valid Service (default.frontend)
+PASS - k8s/base/frontend-deployment.yaml contains a valid ConfigMap (default.frontend-config)
 PASS - k8s/base/frontend-https.yaml contains a valid Deployment (microservices.frontend)
 PASS - k8s/base/frontend-https.yaml contains a valid Service (microservices.frontend)
 PASS - k8s/base/frontend-react-deployment.yaml contains a valid Deployment (microservices.frontend)
@@ -78,6 +78,7 @@ WARN - Set to ignore missing schemas
 PASS - k8s-azure/api-gateway-deployment.yaml contains a valid Deployment (microservices.api-gateway)
 PASS - k8s-azure/api-gateway-deployment.yaml contains a valid Service (microservices.api-gateway)
 PASS - k8s-azure/api-gateway-deployment.yaml contains a valid ConfigMap (microservices.api-gateway-config)
+PASS - k8s-azure/api-gateway-deployment.yaml contains a valid ConfigMap (microservices.api-gateway-health)
 PASS - k8s-azure/config.yaml contains a valid ConfigMap (microservices.auth-config)
 PASS - k8s-azure/config.yaml contains a valid Secret (microservices.auth-secrets)
 PASS - k8s-azure/content-service-deployment.yaml contains a valid Deployment (microservices.content-service)

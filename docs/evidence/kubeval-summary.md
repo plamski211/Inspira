@@ -14,7 +14,7 @@ Kubeval is integrated into our CI/CD pipeline to validate Kubernetes manifests b
 
 Detailed validation results are available in [kubeval-validation-evidence.txt](kubeval-validation-evidence.txt).
 
-The validation was performed on 2025-06-20 22:49:39 and included:
+The validation was performed on 2025-06-21 07:23:03 and included:
 - Base Kubernetes manifests in `k8s/base/`
 - Generated manifests for Azure in `k8s-azure/`
 - Azure-specific overlays in `k8s/overlays/azure/`
