@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Inspira Platform</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+    .container { max-width: 800px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+    h1 { color: #333; }
+    .service { margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+    .service h2 { margin-top: 0; }
+    .button { display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; text-decoration: none; border-radius: 4px; margin-top: 10px; }
+  </style>
+  <script>
+    // Environment configuration
+    window.ENV = {
+      API_URL: 'http://localhost:8000',
+      AUTH0_DOMAIN: 'dev-i9j8l4xe.us.auth0.com',
+      AUTH0_CLIENT_ID: 'JBfJJE07F7yrWTPq7nZ04WO4XdqzPvOa',
+      AUTH0_AUDIENCE: 'https://api.inspira.com',
+      AUTH0_REDIRECT_URI: window.location.origin,
+      ENV: 'development'
+    };
+    console.log('Environment config loaded:', window.ENV);
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Inspira Platform</h1>
+    <p>Welcome to the Inspira microservices platform.</p>
+    <div class="service">
+      <h2>Frontend</h2>
+      <p>This is the frontend service that provides the user interface.</p>
+    </div>
+    <div class="service">
+      <h2>API Gateway</h2>
+      <p>Routes requests to the appropriate microservices.</p>
+    </div>
+    <div class="service">
+      <h2>User Service</h2>
+      <p>Manages user accounts and authentication.</p>
+    </div>
+    <div class="service">
+      <h2>Content Service</h2>
+      <p>Handles content storage and retrieval.</p>
+    </div>
+    <div class="service">
+      <h2>Media Service</h2>
+      <p>Processes and stores media files.</p>
+    </div>
+    <a href="/login" class="button">Login</a>
+  </div>
+</body>
+</html>

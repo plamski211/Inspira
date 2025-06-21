@@ -10,7 +10,20 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.js"],
     include: ["**/*.test.{js,jsx}"],
     coverage: {
-      reporter: ["text", "json", "html"],
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
+      exclude: [
+        'node_modules/',
+        'dist/',
+        'coverage/',
+        '**/*.d.ts',
+        'test/',
+        '**/*.config.{js,ts}',
+      ],
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
     },
   },
   resolve: {

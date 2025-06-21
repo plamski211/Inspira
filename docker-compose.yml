@@ -123,9 +123,11 @@ services:
       SPRING_DATASOURCE_PASSWORD: user_pw
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "true"
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
       LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: DEBUG
       LOGGING_LEVEL_COM_INSPIRA: DEBUG
       SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: docker
     ports:
       - "8083:8080"
     networks:
@@ -133,6 +135,13 @@ services:
     depends_on:
       postgres-users:
         condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   content-service:
     container_name: content-service
@@ -189,15 +198,16 @@ services:
     container_name: frontend
     build:
       context: ./frontend
+      dockerfile: Dockerfile.compose
     ports:
-      - "4173:4173"
+      - "80:80"
     networks:
       - inspira-network
     depends_on:
       - api-gateway
     environment:
       VITE_API_BASE_URL: http://localhost:8000/api
-      VITE_AUTH0_REDIRECT_URI: http://localhost:4173
+      VITE_AUTH0_REDIRECT_URI: http://localhost
 
 volumes:
   postgres_users_data:

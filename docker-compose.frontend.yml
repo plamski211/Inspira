@@ -1,0 +1,177 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.compose
+    container_name: frontend
+    ports:
+      - "80:80"
+    networks:
+      - inspira-network
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  api-gateway:
+    image: inspira/api-gateway:latest
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    networks:
+      - inspira-network
+    depends_on:
+      - user-service
+      - content-service
+      - media-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    restart: unless-stopped
+
+  user-service:
+    image: inspira/user-service:latest
+    container_name: user-service
+    networks:
+      - inspira-network
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-users:5432/users
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    restart: unless-stopped
+
+  content-service:
+    image: inspira/content-service:latest
+    container_name: content-service
+    networks:
+      - inspira-network
+    depends_on:
+      postgres-content:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-content:5432/content
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - MINIO_ENDPOINT=http://minio:9000
+    restart: unless-stopped
+
+  media-service:
+    image: inspira/media-service:latest
+    container_name: media-service
+    networks:
+      - inspira-network
+    depends_on:
+      postgres-media:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-media:5432/media
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    restart: unless-stopped
+
+  postgres-users:
+    image: postgres:15
+    container_name: postgres-users
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=users
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-users-data:/var/lib/postgresql/data
+    networks:
+      - inspira-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-content:
+    image: postgres:15
+    container_name: postgres-content
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=content
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-content-data:/var/lib/postgresql/data
+    networks:
+      - inspira-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-media:
+    image: postgres:15
+    container_name: postgres-media
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=media
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-media-data:/var/lib/postgresql/data
+    networks:
+      - inspira-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio-data:/data
+    networks:
+      - inspira-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@inspira.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    networks:
+      - inspira-network
+    depends_on:
+      - postgres-users
+      - postgres-content
+      - postgres-media
+
+networks:
+  inspira-network:
+    driver: bridge
+
+volumes:
+  postgres-users-data:
+  postgres-content-data:
+  postgres-media-data:
+  minio-data:

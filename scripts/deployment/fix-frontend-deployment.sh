@@ -1,108 +1,100 @@
 #!/bin/bash
 
-# Complete script to fix the frontend deployment with the actual frontend application
-set -e
+# Script to fix the frontend deployment in Azure
 
-echo "=== FIXING FRONTEND DEPLOYMENT ==="
+echo "===== Fixing Frontend Deployment in Azure ====="
+echo ""
 
-# Variables
-DOCKER_USERNAME=${1:-"pngbanks"}
-TAG="fixed"
-IMAGE_NAME="$DOCKER_USERNAME/frontend"
+# Check if kubectl is installed
+if ! command -v kubectl &> /dev/null; then
+  echo "❌ kubectl not found. Please install it first."
+  exit 1
+fi
 
-# Step 1: Update the Dockerfile to properly handle MIME types
-echo "Step 1: Creating optimized Dockerfile..."
-cd frontend
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+  echo "❌ Docker not found. Please install it first."
+  exit 1
+fi
 
-cat > Dockerfile.optimized << EOF
-# Build stage
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+# Check if Azure CLI is installed
+if ! command -v az &> /dev/null; then
+  echo "❌ Azure CLI not found. Please install it first."
+  exit 1
+fi
 
-# Production stage
-FROM nginx:alpine
-WORKDIR /usr/share/nginx/html
+# Check if logged in to Azure
+echo "Checking Azure login status..."
+if ! az account show &> /dev/null; then
+  echo "You need to log in to Azure first:"
+  az login
+else
+  echo "✅ Already logged in to Azure"
+fi
 
-# Copy built assets
-COPY --from=builder /app/dist/ ./
+# Set variables
+RESOURCE_GROUP=${1:-"inspira-resources"}
+AKS_CLUSTER=${2:-"inspira-cluster"}
+REGISTRY=${3:-"inspiraregistry"}
+SECRET_NAME="acr-auth"
 
-# Create a special .htaccess-like file for MIME types
-RUN echo '# Force MIME types for common file extensions' > ./mime-force.txt && \\
-    echo 'application/javascript .js' >> ./mime-force.txt && \\
-    echo 'text/css .css' >> ./mime-force.txt
+echo "Resource Group: $RESOURCE_GROUP"
+echo "AKS Cluster: $AKS_CLUSTER"
+echo "Registry: $REGISTRY"
+echo "Secret Name: $SECRET_NAME"
 
-# Configure Nginx
-RUN echo 'server {\\n\
-    listen 80;\\n\
-    server_name _;\\n\
-    root /usr/share/nginx/html;\\n\
-    index index.html;\\n\
-\\n\
-    # Proper MIME type handling\\n\
-    include /etc/nginx/mime.types;\\n\
-    types {\\n\
-        application/javascript js;\\n\
-        text/css css;\\n\
-    }\\n\
-\\n\
-    # Force Content-Type for specific files\\n\
-    location ~* \\.js$ {\\n\
-        default_type application/javascript;\\n\
-        add_header Content-Type application/javascript;\\n\
-    }\\n\
-\\n\
-    location ~* \\.css$ {\\n\
-        default_type text/css;\\n\
-        add_header Content-Type text/css;\\n\
-    }\\n\
-\\n\
-    location / {\\n\
-        try_files \$uri \$uri/ /index.html;\\n\
-    }\\n\
-\\n\
-    location /api/ {\\n\
-        proxy_pass http://api-gateway;\\n\
-        proxy_http_version 1.1;\\n\
-        proxy_set_header Upgrade \$http_upgrade;\\n\
-        proxy_set_header Connection "upgrade";\\n\
-        proxy_set_header Host \$host;\\n\
-    }\\n\
-}' > /etc/nginx/conf.d/default.conf
+# Get AKS credentials
+echo "Getting AKS credentials..."
+az aks get-credentials --resource-group $RESOURCE_GROUP --name $AKS_CLUSTER --overwrite-existing
 
-# Create env-config.js
-RUN echo 'window.ENV = {\\n\
-  API_URL: "/api",\\n\
-  AUTH0_DOMAIN: "dev-i9j8l4xe.us.auth0.com",\\n\
-  AUTH0_CLIENT_ID: "JBfJJE07F7yrWTPq7nZ04WO4XdqzPvOa",\\n\
-  AUTH0_AUDIENCE: "https://api.inspira.com",\\n\
-  AUTH0_REDIRECT_URI: window.location.origin,\\n\
-  ENV: "production"\\n\
-};\\n\
-console.log("Environment config loaded:", window.ENV);' > ./env-config.js
+# Check if frontend directory exists
+if [ ! -d "frontend" ]; then
+  echo "❌ Frontend directory not found"
+  exit 1
+fi
 
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Create ACR authentication secret
+echo "Creating ACR authentication secret..."
+./scripts/deployment/create-acr-secret.sh $REGISTRY $SECRET_NAME
+
+# Create env-config.js if it doesn't exist
+if [ ! -f "frontend/public/env-config.js" ]; then
+  echo "Creating env-config.js..."
+  mkdir -p frontend/public
+  cat > frontend/public/env-config.js << EOF
+// Environment configuration
+window.ENV = {
+  API_URL: '/api',
+  AUTH0_DOMAIN: 'dev-i9j8l4xe.us.auth0.com',
+  AUTH0_CLIENT_ID: 'JBfJJE07F7yrWTPq7nZ04WO4XdqzPvOa',
+  AUTH0_AUDIENCE: 'https://api.inspira.com',
+  AUTH0_REDIRECT_URI: window.location.origin,
+  ENV: 'production'
+};
+console.log('Environment config loaded:', window.ENV);
 EOF
+fi
 
-# Step 2: Build and push the Docker image
-echo "Step 2: Building and pushing Docker image..."
-docker build -t $IMAGE_NAME:$TAG -f Dockerfile.optimized .
-docker push $IMAGE_NAME:$TAG
+# Build frontend Docker image
+echo "Building frontend Docker image..."
+docker build -t $REGISTRY.azurecr.io/frontend:latest frontend/
 
-cd ..
+# Log in to Azure Container Registry
+echo "Logging in to Azure Container Registry..."
+az acr login --name $REGISTRY
 
-# Step 3: Create a deployment manifest for the fixed frontend
-echo "Step 3: Creating deployment manifest..."
-cat > frontend-fixed-deployment.yaml << EOF
+# Push frontend Docker image
+echo "Pushing frontend Docker image..."
+docker push $REGISTRY.azurecr.io/frontend:latest
+
+# Create frontend deployment YAML
+echo "Creating frontend deployment YAML..."
+cat > frontend-deployment.yaml << EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: microservices
+  namespace: default
 spec:
   replicas: 1
   selector:
@@ -113,47 +105,106 @@ spec:
       labels:
         app: frontend
     spec:
+      imagePullSecrets:
+      - name: $SECRET_NAME
       containers:
       - name: frontend
-        image: $IMAGE_NAME:$TAG
+        image: $REGISTRY.azurecr.io/frontend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
         resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
           limits:
-            cpu: 100m
-            memory: 128Mi
+            cpu: "0.5"
+            memory: "512Mi"
+          requests:
+            cpu: "0.2"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: env-config
+          mountPath: /usr/share/nginx/html/env-config.js
+          subPath: env-config.js
+      volumes:
+      - name: env-config
+        configMap:
+          name: frontend-config
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend
-  namespace: microservices
+  namespace: default
 spec:
   selector:
     app: frontend
   ports:
   - port: 80
     targetPort: 80
-  type: ClusterIP
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: default
+data:
+  env-config.js: |
+    // Environment configuration
+    window.ENV = {
+      API_URL: '/api',
+      AUTH0_DOMAIN: 'dev-i9j8l4xe.us.auth0.com',
+      AUTH0_CLIENT_ID: 'JBfJJE07F7yrWTPq7nZ04WO4XdqzPvOa',
+      AUTH0_AUDIENCE: 'https://api.inspira.com',
+      AUTH0_REDIRECT_URI: window.location.origin,
+      ENV: 'production'
+    };
+    console.log('Environment config loaded:', window.ENV);
 EOF
 
-# Step 4: Apply the deployment
-echo "Step 4: Applying deployment..."
-kubectl apply -f frontend-fixed-deployment.yaml
+# Apply frontend deployment
+echo "Applying frontend deployment..."
+kubectl apply -f frontend-deployment.yaml
 
-# Step 5: Update the ingress to use the frontend service
-echo "Step 5: Updating ingress..."
-kubectl patch ingress inspira-ingress -n microservices --type=json -p='[{"op": "replace", "path": "/spec/rules/0/http/paths/4/backend/service/name", "value": "frontend"}]'
+# Delete any existing pods to force a new deployment
+echo "Deleting existing frontend pods to force a new deployment..."
+kubectl delete pods -l app=frontend --grace-period=0 --force || true
 
-# Step 6: Wait for the deployment to complete
-echo "Step 6: Waiting for deployment to complete..."
-kubectl rollout status deployment/frontend -n microservices
+# Wait for frontend deployment to be ready
+echo "Waiting for frontend deployment to be ready..."
+kubectl rollout status deployment/frontend
 
-echo "=== FRONTEND DEPLOYMENT FIXED ==="
-echo "Your actual frontend application should now be accessible at http://4.156.37.48"
+# Get frontend service IP
+echo "Getting frontend service IP..."
+FRONTEND_IP=""
+while [ -z "$FRONTEND_IP" ]; do
+  echo "Waiting for frontend service IP..."
+  FRONTEND_IP=$(kubectl get service frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+  if [ -z "$FRONTEND_IP" ]; then
+    sleep 10
+  fi
+done
 
-# Verify the deployment
-kubectl get pods -n microservices -l app=frontend 
+echo ""
+echo "===== Frontend Deployment Fixed ====="
+echo ""
+echo "Frontend is available at: http://$FRONTEND_IP"
+echo ""
+echo "If you still see a white screen, check the following:"
+echo "1. Check the frontend logs: kubectl logs deployment/frontend"
+echo "2. Check if the API Gateway is accessible from the frontend"
+echo "3. Check the browser console for any errors"
+echo ""
+echo "You can also run the check-frontend.sh script to diagnose any issues:"
+echo "./scripts/deployment/check-frontend.sh" 
