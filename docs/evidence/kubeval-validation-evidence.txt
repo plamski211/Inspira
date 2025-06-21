@@ -1,0 +1,115 @@
+# Kubeval Validation Evidence
+
+**Date and Time:** 2025-06-20 22:49:39
+
+## System Information
+- OS: Darwin
+- Kubeval Version: Version: 0.16.1
+Commit: f5dba6b486fa18b9179b91e15eb6f2b0f7a5a69e
+Date: 2021-03-30T15:17:06Z
+
+## Validation Results
+
+### Base Kubernetes Manifests
+
+```
+WARN - Set to ignore missing schemas
+PASS - k8s/base/api-gateway-deployment.yaml contains a valid Deployment (microservices.api-gateway)
+PASS - k8s/base/api-gateway-deployment.yaml contains a valid Service (microservices.api-gateway)
+PASS - k8s/base/api-gateway-deployment.yaml contains a valid ConfigMap (microservices.api-gateway-config)
+PASS - k8s/base/config.yaml contains a valid ConfigMap (microservices.auth-config)
+PASS - k8s/base/config.yaml contains a valid Secret (microservices.auth-secrets)
+PASS - k8s/base/content-service-deployment.yaml contains a valid Deployment (microservices.content-service)
+PASS - k8s/base/content-service-deployment.yaml contains a valid Service (microservices.content-service)
+PASS - k8s/base/databases.yaml contains a valid Deployment (microservices.postgres-users)
+PASS - k8s/base/databases.yaml contains a valid Service (microservices.postgres-users)
+PASS - k8s/base/databases.yaml contains a valid Deployment (microservices.postgres-content)
+PASS - k8s/base/databases.yaml contains a valid Service (microservices.postgres-content)
+PASS - k8s/base/databases.yaml contains a valid Deployment (microservices.postgres-media)
+PASS - k8s/base/databases.yaml contains a valid Service (microservices.postgres-media)
+PASS - k8s/base/databases.yaml contains a valid Deployment (microservices.minio)
+PASS - k8s/base/databases.yaml contains a valid Service (microservices.minio)
+PASS - k8s/base/deployment.yaml contains a valid Deployment (microservices.frontend)
+PASS - k8s/base/deployment.yaml contains a valid Service (microservices.frontend)
+PASS - k8s/base/external-services.yaml contains a valid Service (microservices.api-gateway-external)
+PASS - k8s/base/external-services.yaml contains a valid Service (microservices.frontend-external)
+PASS - k8s/base/external-services.yaml contains a valid Service (microservices.minio-external)
+PASS - k8s/base/external-services.yaml contains a valid Service (microservices.content-service-external)
+PASS - k8s/base/external-services.yaml contains a valid Service (microservices.media-service-external)
+PASS - k8s/base/frontend-deployment.yaml contains a valid Deployment (microservices.frontend-deployment)
+PASS - k8s/base/frontend-deployment.yaml contains a valid Service (microservices.frontend-service)
+PASS - k8s/base/frontend-deployment.yaml contains a valid Service (microservices.frontend-external)
+PASS - k8s/base/frontend-https.yaml contains a valid Deployment (microservices.frontend)
+PASS - k8s/base/frontend-https.yaml contains a valid Service (microservices.frontend)
+PASS - k8s/base/frontend-react-deployment.yaml contains a valid Deployment (microservices.frontend)
+PASS - k8s/base/frontend-react-deployment.yaml contains a valid Service (microservices.frontend)
+PASS - k8s/base/health-endpoints.yaml contains a valid ConfigMap (microservices.user-service-health)
+PASS - k8s/base/health-endpoints.yaml contains a valid ConfigMap (microservices.content-service-health)
+PASS - k8s/base/health-endpoints.yaml contains a valid ConfigMap (microservices.media-service-health)
+PASS - k8s/base/health-endpoints.yaml contains a valid ConfigMap (microservices.api-gateway-health)
+WARN - k8s/base/horizontal-pod-autoscalers.yaml containing a HorizontalPodAutoscaler (microservices.api-gateway-hpa) was not validated against a schema
+WARN - k8s/base/horizontal-pod-autoscalers.yaml containing a HorizontalPodAutoscaler (microservices.user-service-hpa) was not validated against a schema
+WARN - k8s/base/horizontal-pod-autoscalers.yaml containing a HorizontalPodAutoscaler (microservices.content-service-hpa) was not validated against a schema
+WARN - k8s/base/horizontal-pod-autoscalers.yaml containing a HorizontalPodAutoscaler (microservices.media-service-hpa) was not validated against a schema
+WARN - k8s/base/ingress-tls.yaml containing a Ingress (microservices.inspira-ingress) was not validated against a schema
+WARN - k8s/base/ingress.yaml containing a Ingress (microservices.inspira-ingress) was not validated against a schema
+PASS - k8s/base/media-service-deployment.yaml contains a valid Deployment (microservices.media-service)
+PASS - k8s/base/media-service-deployment.yaml contains a valid Service (microservices.media-service)
+PASS - k8s/base/network-policy.yaml contains a valid NetworkPolicy (microservices.default-deny-except-ingress)
+PASS - k8s/base/resource-quota.yaml contains a valid ResourceQuota (microservices.inspira-quota)
+WARN - k8s/base/service-monitors.yaml containing a ServiceMonitor (monitoring.api-gateway-monitor) was not validated against a schema
+WARN - k8s/base/service-monitors.yaml containing a ServiceMonitor (monitoring.user-service-monitor) was not validated against a schema
+WARN - k8s/base/service-monitors.yaml containing a ServiceMonitor (monitoring.content-service-monitor) was not validated against a schema
+WARN - k8s/base/service-monitors.yaml containing a ServiceMonitor (monitoring.media-service-monitor) was not validated against a schema
+PASS - k8s/base/test-endpoints.yaml contains a valid Deployment (microservices.api-test-endpoints)
+PASS - k8s/base/test-endpoints.yaml contains a valid Service (microservices.api-test-endpoints)
+PASS - k8s/base/test-endpoints.yaml contains a valid ConfigMap (microservices.api-test-endpoints-config)
+WARN - k8s/base/test-endpoints.yaml containing a Ingress (microservices.test-endpoints-ingress) was not validated against a schema
+PASS - k8s/base/user-service-deployment.yaml contains a valid Deployment (microservices.user-service)
+PASS - k8s/base/user-service-deployment.yaml contains a valid Service (microservices.user-service)
+
+✅ All manifests in k8s/base directory are valid
+```
+
+### Azure Kubernetes Manifests
+
+```
+WARN - Set to ignore missing schemas
+PASS - k8s-azure/api-gateway-deployment.yaml contains a valid Deployment (microservices.api-gateway)
+PASS - k8s-azure/api-gateway-deployment.yaml contains a valid Service (microservices.api-gateway)
+PASS - k8s-azure/api-gateway-deployment.yaml contains a valid ConfigMap (microservices.api-gateway-config)
+PASS - k8s-azure/config.yaml contains a valid ConfigMap (microservices.auth-config)
+PASS - k8s-azure/config.yaml contains a valid Secret (microservices.auth-secrets)
+PASS - k8s-azure/content-service-deployment.yaml contains a valid Deployment (microservices.content-service)
+PASS - k8s-azure/content-service-deployment.yaml contains a valid Service (microservices.content-service)
+PASS - k8s-azure/frontend-deployment.yaml contains a valid Deployment (microservices.frontend-deployment)
+PASS - k8s-azure/frontend-deployment.yaml contains a valid Service (microservices.frontend-service)
+PASS - k8s-azure/frontend-deployment.yaml contains a valid Service (microservices.frontend-external)
+WARN - k8s-azure/ingress.yaml containing a Ingress (microservices.inspira-ingress) was not validated against a schema
+PASS - k8s-azure/media-service-deployment.yaml contains a valid Deployment (microservices.media-service)
+PASS - k8s-azure/media-service-deployment.yaml contains a valid Service (microservices.media-service)
+PASS - k8s-azure/user-service-deployment.yaml contains a valid Deployment (microservices.user-service)
+PASS - k8s-azure/user-service-deployment.yaml contains a valid Service (microservices.user-service)
+
+✅ All manifests in k8s-azure directory are valid
+```
+
+### Azure Overlay Manifests
+
+```
+WARN - Set to ignore missing schemas
+PASS - k8s/overlays/azure/api-gateway-deployment.yaml contains a valid Deployment (microservices.api-gateway)
+PASS - k8s/overlays/azure/api-gateway-deployment.yaml contains a valid Service (microservices.api-gateway)
+PASS - k8s/overlays/azure/config.yaml contains a valid ConfigMap (microservices.auth-config)
+PASS - k8s/overlays/azure/config.yaml contains a valid Secret (microservices.auth-secrets)
+PASS - k8s/overlays/azure/deployment.yaml contains a valid Deployment (microservices.frontend)
+PASS - k8s/overlays/azure/deployment.yaml contains a valid Service (microservices.frontend)
+PASS - k8s/overlays/azure/frontend-deployment.yaml contains a valid ConfigMap (microservices.frontend-html)
+PASS - k8s/overlays/azure/frontend-deployment.yaml contains a valid Deployment (microservices.frontend)
+PASS - k8s/overlays/azure/frontend-deployment.yaml contains a valid Service (microservices.frontend)
+WARN - k8s/overlays/azure/ingress.yaml containing a Ingress (microservices.inspira-ingress) was not validated against a schema
+PASS - k8s/overlays/azure/user-service-deployment.yaml contains a valid Deployment (microservices.user-service)
+PASS - k8s/overlays/azure/user-service-deployment.yaml contains a valid Service (microservices.user-service)
+
+✅ All manifests in k8s/overlays/azure directory are valid
+```

@@ -1,14 +1,5 @@
-# --- Builder stage ---
-FROM gradle:8.0.2-jdk17 AS builder
-WORKDIR /home/gradle/src
-
-COPY --chown=gradle:gradle . .
-RUN gradle clean build -x test --no-daemon
-
-# --- Runtime stage ---
-FROM eclipse-temurin:17-jre-jammy
+FROM openjdk:17-jdk-slim
 WORKDIR /app
-
-COPY --from=builder /home/gradle/src/build/libs/*.jar app.jar
+COPY . .
 EXPOSE 8083
-ENTRYPOINT ["java", "-jar", "app.jar"]
+CMD ["java", "-jar", "app.jar"]

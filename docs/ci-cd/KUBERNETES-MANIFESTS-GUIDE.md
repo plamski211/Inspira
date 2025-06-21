@@ -1,93 +1,96 @@
-# Kubernetes Manifests Guide for CI/CD Pipeline
+# Kubernetes Manifests Guide
 
-This guide explains how to handle Kubernetes manifest issues in the CI/CD pipeline.
+This document provides guidance on managing, validating, and troubleshooting Kubernetes manifests in the Inspira CI/CD pipeline.
 
-## Missing Kubernetes Manifests Error
+## Manifest Structure
 
-### Issue
+The Inspira project uses a structured approach to Kubernetes manifests:
 
-When running the deployment step in GitHub Actions, you might encounter this error:
+- `k8s/base/` - Contains base manifests for all services
+- `k8s/overlays/` - Contains environment-specific overlays (dev, prod, azure)
+- `k8s-azure/` - Contains generated manifests for Azure deployment
 
+## Manifest Validation
+
+The CI/CD pipeline validates all Kubernetes manifests using `kubeval` to ensure they conform to Kubernetes schema definitions.
+
+### Running Validation Locally
+
+To validate manifests locally:
+
+```bash
+./scripts/ci-cd/validate-k8s-manifests.sh
 ```
-sed: can't read k8s-azure/api-gateway-deployment.yaml: No such file or directory
-Error: Process completed with exit code 2.
+
+This script will:
+1. Install `kubeval` if not already installed
+2. Validate all manifests in `k8s/base/` and `k8s-azure/`
+3. Generate manifests if needed using `prepare-k8s-manifests.sh`
+
+### Common Validation Errors
+
+| Error | Description | Solution |
+|-------|-------------|----------|
+| `Additional property X is not allowed` | Unknown field in manifest | Remove the field or update kubeval version |
+| `Invalid type. Expected: [array], given: string` | Incorrect data type | Fix the data type in the manifest |
+| `Missing required property` | Required field is missing | Add the required field |
+| `Invalid Kubernetes version` | Schema version mismatch | Specify correct version with `--kubernetes-version` |
+
+## Manifest Generation
+
+The pipeline automatically generates manifests for Azure deployment using the `prepare-k8s-manifests.sh` script. This script:
+
+1. Creates the `k8s-azure` directory if it doesn't exist
+2. Copies base manifests from `k8s/base`
+3. Applies Azure-specific overlays from `k8s/overlays/azure`
+4. Applies any necessary patches
+
+### Manual Manifest Generation
+
+To generate manifests manually:
+
+```bash
+./scripts/ci-cd/prepare-k8s-manifests.sh
 ```
 
-This happens when the pipeline tries to update Kubernetes manifest files in a directory that doesn't exist.
+## Troubleshooting
 
-### Solution
+### Missing Manifests
 
-Our CI/CD pipeline includes several mechanisms to handle this:
+If the pipeline fails with "manifest not found" errors:
 
-1. **Automatic Manifest Generation**: The pipeline automatically creates Kubernetes manifest files if they don't exist.
+1. Check that the `k8s/base` directory contains all required manifests
+2. Verify that `prepare-k8s-manifests.sh` is generating the expected files
+3. Run `./scripts/ci-cd/validate-k8s-manifests.sh` to validate and generate manifests
 
-2. **Manifest Preparation Script**: A dedicated script (`scripts/ci-cd/prepare-k8s-manifests.sh`) prepares all necessary manifests.
+### Invalid Manifests
 
-3. **Fallback Mechanism**: If the preparation script isn't found, a simple inline fallback is used.
+If the pipeline fails with "invalid manifest" errors:
 
-## How the Pipeline Handles Manifests
+1. Run `./scripts/ci-cd/validate-k8s-manifests.sh` to identify specific issues
+2. Fix the reported errors in the manifest files
+3. Re-run validation to confirm fixes
 
-1. **Directory Creation**: The pipeline first creates a `k8s-azure` directory if it doesn't exist.
+### Resource Quotas
 
-2. **Base Manifest Copying**: If base manifests exist in `k8s/base`, they are copied to the `k8s-azure` directory.
+If deployments fail due to resource constraints:
 
-3. **Manifest Generation**: If no base manifests exist, simple manifests are created for each service.
+1. Check `k8s/base/resource-quota.yaml` for current limits
+2. Adjust resource requests/limits in deployment manifests
+3. Consider using Horizontal Pod Autoscaler for dynamic scaling
 
-4. **Image Tag Updates**: The pipeline then updates the image tags in the manifests with the current build's image tags.
+## Best Practices
 
-## How to Fix Manually
+1. **Use Base/Overlay Structure**: Keep common configurations in base and environment-specific changes in overlays
+2. **Validate Before Committing**: Run validation locally before pushing changes
+3. **Include Resource Limits**: Always specify resource requests and limits
+4. **Use ConfigMaps**: Externalize configuration using ConfigMaps
+5. **Set Liveness/Readiness Probes**: Include health checks for all services
+6. **Use Labels Consistently**: Apply consistent labeling for all resources
+7. **Document Changes**: Add comments for non-obvious configurations
 
-If you need to create Kubernetes manifests manually:
+## Reference
 
-1. Create a directory for your manifests:
-   ```bash
-   mkdir -p k8s-azure
-   ```
-
-2. Create deployment manifests for each service:
-   ```bash
-   # Example for api-gateway
-   cat > k8s-azure/api-gateway-deployment.yaml << 'EOF'
-   apiVersion: apps/v1
-   kind: Deployment
-   metadata:
-     name: api-gateway
-     namespace: default
-   spec:
-     replicas: 1
-     selector:
-       matchLabels:
-         app: api-gateway
-     template:
-       metadata:
-         labels:
-           app: api-gateway
-       spec:
-         containers:
-         - name: api-gateway
-           image: inspira/api-gateway:latest
-           ports:
-           - containerPort: 8080
-   EOF
-   ```
-
-3. Repeat for each service (frontend, user-service, content-service, media-service).
-
-## Manifest Preparation Script
-
-The `scripts/ci-cd/prepare-k8s-manifests.sh` script automates the creation of Kubernetes manifests:
-
-1. It checks if base manifests exist in `k8s/base` and copies them if they do.
-2. If no base manifests exist, it creates simple manifests for each service.
-3. It generates all necessary resources (Deployments, Services, Ingress, ConfigMaps).
-
-## Pipeline Resilience
-
-Our CI/CD pipeline is designed to be resilient to missing Kubernetes manifests by:
-
-1. Checking for manifests before updating them
-2. Creating them if they don't exist
-3. Using fallback mechanisms if the primary method fails
-4. Providing detailed error messages and verification steps
-
-This ensures that the pipeline can continue even if some components are missing, making it ideal for demonstration and learning purposes. 
+- [Kubernetes API Reference](https://kubernetes.io/docs/reference/kubernetes-api/)
+- [Kubeval Documentation](https://www.kubeval.com/docs/)
+- [Kustomize Documentation](https://kubectl.docs.kubernetes.io/guides/introduction/kustomize/) 

@@ -10,7 +10,20 @@ The following error occurs when the service principal used in your GitHub Action
 ERROR: (AuthorizationFailed) The client '...' with object id '...' does not have authorization to perform action 'Microsoft.ContainerService/managedClusters/listClusterUserCredential/action' over scope '/subscriptions/.../resourceGroups/.../providers/Microsoft.ContainerService/managedClusters/...' or the scope is invalid. If access was recently granted, please refresh your credentials.
 ```
 
-## Solution
+## Quick Solution
+
+Run our automated fix script:
+
+```bash
+./scripts/ci-cd/fix-aks-permissions.sh
+```
+
+This script will:
+1. Prompt for your resource group name, cluster name, and service principal ID
+2. Assign the necessary roles to the service principal
+3. Verify the role assignments
+
+## Manual Solution
 
 ### 1. Create a Service Principal with Proper Permissions
 
@@ -41,7 +54,7 @@ az role assignment create \
   --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$AKS_CLUSTER_NAME \
   --role "Azure Kubernetes Service Cluster User Role"
 
-# Assign the "Azure Kubernetes Service Cluster Admin Role" to the service principal (if needed)
+# Assign the "Azure Kubernetes Service Cluster Admin Role" to the service principal
 az role assignment create \
   --assignee $SP_ID \
   --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$AKS_CLUSTER_NAME \
@@ -65,6 +78,42 @@ In your GitHub repository, go to Settings > Secrets and variables > Actions > Va
 1. `AZURE_RESOURCE_GROUP` - The name of your Azure resource group
 2. `AKS_CLUSTER_NAME` - The name of your AKS cluster
 
+## Fixing Permissions for an Existing Service Principal
+
+If you already have a service principal but it's getting the authorization error:
+
+1. Extract the client ID from the error message (e.g., '9285ee66-0202-4672-bb23-847cd9701b59')
+2. Run the following commands:
+
+```bash
+# Login to Azure
+az login
+
+# Get your subscription ID
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+
+# Set your resource group and cluster name
+RESOURCE_GROUP="inspira-resources"  # Replace with your resource group name
+AKS_CLUSTER_NAME="inspira-cluster"  # Replace with your cluster name
+
+# Set the service principal ID from the error message
+SP_ID="9285ee66-0202-4672-bb23-847cd9701b59"  # Replace with your service principal ID
+
+# Assign the necessary roles
+az role assignment create \
+  --assignee $SP_ID \
+  --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$AKS_CLUSTER_NAME \
+  --role "Azure Kubernetes Service Cluster User Role"
+
+az role assignment create \
+  --assignee $SP_ID \
+  --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$AKS_CLUSTER_NAME \
+  --role "Azure Kubernetes Service Cluster Admin Role"
+```
+
+3. Wait a few minutes for the permissions to propagate
+4. Re-run your GitHub Actions workflow
+
 ## Alternative: Using Managed Identity
 
 For production environments, consider using Azure Managed Identity instead of service principals for better security:
@@ -81,6 +130,8 @@ If you still encounter permission issues:
 2. Check if the resource group or AKS cluster name has changed.
 3. Ensure the service principal has the correct role assignments.
 4. Try recreating the service principal with fresh credentials.
+5. Check for typos in resource group or cluster names.
+6. Ensure the subscription is active and not suspended.
 
 ## Pipeline Resilience
 

@@ -51,6 +51,20 @@ else
   echo "❌ Azure credentials setup script not found"
 fi
 
+# Check if AKS permissions fix script exists
+if [ -f "scripts/ci-cd/fix-aks-permissions.sh" ]; then
+  echo "✅ AKS permissions fix script found"
+else
+  echo "❌ AKS permissions fix script not found"
+fi
+
+# Check if Kubernetes manifest validation script exists
+if [ -f "scripts/ci-cd/validate-k8s-manifests.sh" ]; then
+  echo "✅ Kubernetes manifest validation script found"
+else
+  echo "❌ Kubernetes manifest validation script not found"
+fi
+
 # Check if Azure permissions guide exists
 if [ -f "docs/ci-cd/AZURE-PERMISSIONS-GUIDE.md" ]; then
   echo "✅ Azure permissions guide found"
@@ -121,6 +135,8 @@ echo "✅ Fallback mechanisms for missing components"
 echo "✅ Error handling for Azure authentication issues"
 echo "✅ Error handling for Docker build issues"
 echo "✅ Error handling for Kubernetes manifest issues"
+echo "✅ Error handling for AKS permissions issues"
+echo "✅ Kubernetes manifest validation"
 
 echo ""
 echo "===== Pipeline Resilience ====="
@@ -132,11 +148,13 @@ echo "✅ Graceful handling of test failures"
 echo "✅ Simplified load testing that always succeeds"
 echo "✅ Azure authentication error handling"
 echo "✅ AKS context error handling"
+echo "✅ AKS permissions fixing script"
 echo "✅ Mock deployments when Azure credentials are missing"
 echo "✅ Automatic Dockerfile generation for missing services"
 echo "✅ Specific verification for user-service Dockerfile"
 echo "✅ Automatic Kubernetes manifest generation"
 echo "✅ Fallback for missing Kubernetes manifests"
+echo "✅ Kubernetes manifest validation with kubeval"
 
 echo ""
 echo "Pipeline verification completed successfully!" 

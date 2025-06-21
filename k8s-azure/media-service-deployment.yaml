@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: media-service
+  namespace: microservices
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: media-service
+  template:
+    metadata:
+      labels:
+        app: media-service
+    spec:
+      containers:
+      - name: media-service
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: health-endpoint
+          mountPath: /usr/share/nginx/html/health.html
+        env:
+        - name: POSTGRES_HOST
+          value: postgres-media
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          value: media
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: media-db-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: media-db-password
+        - name: MINIO_ENDPOINT
+          value: http://minio:9000
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: storage-secrets
+              key: storage-account-name
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: storage-secrets
+              key: storage-account-key
+        readinessProbe:
+          httpGet:
+            path: /health.html
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health.html
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: health-endpoint
+        configMap:
+          name: media-service-health
+          items:
+          - key: health.html
+            path: health.html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: media-service
+  namespace: microservices
+  labels:
+    app: media-service
+    monitoring: "true"
+spec:
+  selector:
+    app: media-service
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  type: ClusterIP 
