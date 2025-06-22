@@ -7,6 +7,7 @@ resources:
 - namespace.yaml
 - nginx-config.yaml
 - frontend-deployment.yaml
+- ingress.yaml
 
 patches:
 - path: frontend-deployment.yaml 
