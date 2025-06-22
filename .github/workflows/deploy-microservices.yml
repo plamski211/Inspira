@@ -54,7 +54,14 @@ jobs:
         uses: docker/login-action@v2
         with:
           username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          
+      # Add direct Docker Hub login that always runs
+      - name: Direct Docker Hub login
+        uses: docker/login-action@v2
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
           
       - name: Set environment variables
         run: |
@@ -66,33 +73,41 @@ jobs:
             echo "NAMESPACE=microservices" >> $GITHUB_ENV
           fi
           
+          # Set registry URL with fallback to Docker Hub
+          if [[ -z "${{ env.REGISTRY }}" ]]; then
+            echo "Using Docker Hub as registry"
+            echo "REGISTRY_URL=${{ env.DOCKER_USERNAME }}/" >> $GITHUB_ENV
+          else
+            echo "REGISTRY_URL=${{ env.REGISTRY }}/" >> $GITHUB_ENV
+          fi
+          
       - name: Build and push API Gateway image
         uses: docker/build-push-action@v4
         with:
           context: ./api-gateway
           push: true
-          tags: ${{ env.REGISTRY }}/api-gateway:${{ env.TAG }}
+          tags: ${{ env.REGISTRY_URL }}api-gateway:${{ env.TAG }}
           
       - name: Build and push User Service image
         uses: docker/build-push-action@v4
         with:
           context: ./user-service
           push: true
-          tags: ${{ env.REGISTRY }}/user-service:${{ env.TAG }}
+          tags: ${{ env.REGISTRY_URL }}user-service:${{ env.TAG }}
           
       - name: Build and push Content Service image
         uses: docker/build-push-action@v4
         with:
           context: ./content-service
           push: true
-          tags: ${{ env.REGISTRY }}/content-service:${{ env.TAG }}
+          tags: ${{ env.REGISTRY_URL }}content-service:${{ env.TAG }}
           
       - name: Build and push Media Service image
         uses: docker/build-push-action@v4
         with:
           context: ./media-service
           push: true
-          tags: ${{ env.REGISTRY }}/media-service:${{ env.TAG }}
+          tags: ${{ env.REGISTRY_URL }}media-service:${{ env.TAG }}
           
       - name: Build and push Frontend image
         uses: docker/build-push-action@v4
@@ -100,7 +115,7 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile.prod
           push: true
-          tags: ${{ env.REGISTRY }}/frontend:${{ env.TAG }}
+          tags: ${{ env.REGISTRY_URL }}frontend:${{ env.TAG }}
           
       - name: Set up kubectl
         uses: azure/k8s-set-context@v3
@@ -122,11 +137,11 @@ jobs:
           
       - name: Update deployment manifests
         run: |
-          sed -i "s|image:.*api-gateway.*|image: ${{ env.REGISTRY }}/api-gateway:${{ env.TAG }}|g" k8s-public/api-gateway-deployment.yaml
-          sed -i "s|image:.*user-service.*|image: ${{ env.REGISTRY }}/user-service:${{ env.TAG }}|g" k8s-public/user-service-deployment.yaml
-          sed -i "s|image:.*content-service.*|image: ${{ env.REGISTRY }}/content-service:${{ env.TAG }}|g" k8s-public/content-service-deployment.yaml
-          sed -i "s|image:.*media-service.*|image: ${{ env.REGISTRY }}/media-service:${{ env.TAG }}|g" k8s-public/media-service-deployment.yaml
-          sed -i "s|image:.*frontend.*|image: ${{ env.REGISTRY }}/frontend:${{ env.TAG }}|g" k8s-public/frontend-deployment.yaml
+          sed -i "s|image:.*api-gateway.*|image: ${{ env.REGISTRY_URL }}api-gateway:${{ env.TAG }}|g" k8s-public/api-gateway-deployment.yaml
+          sed -i "s|image:.*user-service.*|image: ${{ env.REGISTRY_URL }}user-service:${{ env.TAG }}|g" k8s-public/user-service-deployment.yaml
+          sed -i "s|image:.*content-service.*|image: ${{ env.REGISTRY_URL }}content-service:${{ env.TAG }}|g" k8s-public/content-service-deployment.yaml
+          sed -i "s|image:.*media-service.*|image: ${{ env.REGISTRY_URL }}media-service:${{ env.TAG }}|g" k8s-public/media-service-deployment.yaml
+          sed -i "s|image:.*frontend.*|image: ${{ env.REGISTRY_URL }}frontend:${{ env.TAG }}|g" k8s-public/frontend-deployment.yaml
           
       - name: Deploy microservices
         run: |
