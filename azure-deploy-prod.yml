@@ -6,17 +6,7 @@ on:
     paths-ignore:
       - '**.md'
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
 
-# Add permissions block for security scanning
 permissions:
   contents: read
   security-events: write
@@ -27,80 +17,13 @@ env:
   AZURE_RESOURCE_GROUP: inspira-project
   AKS_CLUSTER_NAME: inspira-aks
   NAMESPACE: microservices
-  STAGING_DOMAIN: staging.inspira-project.com
-  PRODUCTION_DOMAIN: inspira-project.com
+  DOCKER_USERNAME: pngbanks
 
 jobs:
-  code-quality:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
-      
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci
-      
-      - name: Check ESLint version and config
-        run: |
-          cd frontend
-          echo "ESLint version:"
-          npx eslint --version
-          echo "Node version:"
-          node --version
-          echo "Listing config file:"
-          cat eslint.config.js
-        
-      - name: Frontend Linting
-        id: eslint
-        run: |
-          cd frontend
-          npm run lint
-        continue-on-error: true
-      
-      - name: Evaluate linting result
-        if: steps.eslint.outcome == 'failure'
-        run: |
-          echo "::warning::ESLint failed but continuing with the pipeline - please fix linting issues"
-      
-      - name: Backend Code Quality
-        run: |
-          echo "Backend code quality checks complete"
-
-  security-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-      
-      - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'trivy-results.sarif'
-          category: 'trivy'
-
   build:
-    needs: [code-quality, security-scan]
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.image_tag.outputs.tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -111,48 +34,22 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: ${{ env.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Build frontend image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile.prod
-          push: true
-          tags: pngbanks/frontend:latest,pngbanks/frontend:${{ github.sha }}
-      
-      - name: Build API Gateway image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./api-gateway
-          file: ./api-gateway/Dockerfile
-          push: true
-          tags: pngbanks/api-gateway:latest,pngbanks/api-gateway:${{ github.sha }}
-      
-      - name: Build User Service image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./user-service
-          file: ./user-service/Dockerfile
-          push: true
-          tags: pngbanks/user-service:latest,pngbanks/user-service:${{ github.sha }}
-      
-      - name: Build Content Service image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./content-service
-          file: ./content-service/Dockerfile
-          push: true
-          tags: pngbanks/content-service:latest,pngbanks/content-service:${{ github.sha }}
-      
-      - name: Build Media Service image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./media-service
-          file: ./media-service/Dockerfile
-          push: true
-          tags: pngbanks/media-service:latest,pngbanks/media-service:${{ github.sha }}
+
+      - name: Generate image tag
+        id: image_tag
+        run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Build and push all images
+        run: |
+          services="frontend api-gateway user-service content-service media-service"
+          for service in $services; do
+            echo "Building and pushing $service..."
+            docker build -t ${{ env.DOCKER_USERNAME }}/$service:latest -t ${{ env.DOCKER_USERNAME }}/$service:${{ steps.image_tag.outputs.tag }} -f $service/Dockerfile $service
+            docker push ${{ env.DOCKER_USERNAME }}/$service:latest
+            docker push ${{ env.DOCKER_USERNAME }}/$service:${{ steps.image_tag.outputs.tag }}
+          done
 
   test:
     needs: build
@@ -160,13 +57,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
-      - name: Validate Kubernetes manifests
-        run: |
-          curl -L https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz
-          chmod +x kubeval
-          ./kubeval --strict $(find k8s -name "*.yaml" -type f) || echo "Warning: Some manifests may need fixing"
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -174,28 +65,39 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
       
-      - name: Test Frontend
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run frontend linting
+        working-directory: ./frontend
+        run: npm run lint
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm test
+      
+      - name: Run Trivy vulnerability scanner on filesystem
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Validate Kubernetes manifests
         run: |
-          cd frontend
-          npm ci
-          npm test || echo "Warning: Some frontend tests may be failing"
+          curl -L https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz
+          chmod +x kubeval
+          ./kubeval --strict $(find k8s -name "*.yaml" -type f)
 
-      - name: Test API Gateway
-        run: echo "API Gateway tests completed"
-      
-      - name: Test User Service
-        run: echo "User Service tests completed"
-      
-      - name: Test Content Service
-        run: echo "Content Service tests completed"
-      
-      - name: Test Media Service
-        run: echo "Media Service tests completed"
-
-  deploy-staging:
+  deploy:
     needs: test
     runs-on: ubuntu-latest
-    environment: staging
+    environment: 
+      name: production
+      url: http://inspira-project.com
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -211,55 +113,30 @@ jobs:
           admin: 'false'
           use-kubelogin: 'true'
       
-      - name: Deploy to staging
+      - name: Update Kubernetes manifests with new image tag
         run: |
-          # Update image tags in Kubernetes manifests
-          for service in frontend api-gateway content-service media-service user-service; do
-            sed -i "s|image: pngbanks/${service}:.*|image: pngbanks/${service}:${{ github.sha }}|g" k8s/overlays/dev/${service}-deployment.yaml || echo "Warning: Could not update image tag for ${service}"
-          done
-          kubectl apply -k k8s/overlays/dev
-          kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=300s || echo "Warning: Frontend deployment may not be ready"
-          kubectl rollout status deployment/api-gateway -n ${{ env.NAMESPACE }} --timeout=300s || echo "Warning: API Gateway deployment may not be ready"
-          kubectl rollout status deployment/content-service -n ${{ env.NAMESPACE }} --timeout=300s || echo "Warning: Content Service deployment may not be ready"
-          kubectl rollout status deployment/media-service -n ${{ env.NAMESPACE }} --timeout=300s || echo "Warning: Media Service deployment may not be ready"
-          kubectl rollout status deployment/user-service -n ${{ env.NAMESPACE }} --timeout=300s || echo "Warning: User Service deployment may not be ready"
+          TAG=${{ needs.build.outputs.image_tag }}
+          find k8s/overlays/prod -type f -name '*-deployment.yaml' -exec sed -i "s|image: ${{ env.DOCKER_USERNAME }}/\([a-z-]*\):.*|image: ${{ env.DOCKER_USERNAME }}/\1:$TAG|g" {} +
+          echo "Updated image tags to $TAG"
 
-  deploy-production:
-    needs: deploy-staging
-    runs-on: ubuntu-latest
-    environment: production
-    if: ${{ github.event.inputs.environment == 'production' || github.ref == 'refs/heads/main' }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-      
-      - name: Set AKS context
-        uses: azure/aks-set-context@v3
-        with:
-          resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
-          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
-          admin: 'false'
-          use-kubelogin: 'true'
-      
       - name: Deploy to production
         run: |
-          # Update image tags in Kubernetes manifests
-          for service in frontend api-gateway content-service media-service user-service; do
-            sed -i "s|image: pngbanks/${service}:.*|image: pngbanks/${service}:${{ github.sha }}|g" k8s/overlays/prod/${service}-deployment.yaml || echo "Warning: Could not update image tag for ${service}"
-          done
           kubectl apply -k k8s/overlays/prod
-          kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=300s || echo "Warning: Frontend deployment may not be ready"
-          kubectl rollout status deployment/api-gateway -n ${{ env.NAMESPACE }} --timeout=300s || echo "Warning: API Gateway deployment may not be ready"
-          kubectl rollout status deployment/content-service -n ${{ env.NAMESPACE }} --timeout=300s || echo "Warning: Content Service deployment may not be ready"
-          kubectl rollout status deployment/media-service -n ${{ env.NAMESPACE }} --timeout=300s || echo "Warning: Media Service deployment may not be ready"
-          kubectl rollout status deployment/user-service -n ${{ env.NAMESPACE }} --timeout=300s || echo "Warning: User Service deployment may not be ready"
+          kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/api-gateway -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/content-service -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/media-service -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/user-service -n ${{ env.NAMESPACE }} --timeout=5m
       
       - name: Health check
         run: |
-          sleep 30
-          FRONTEND_IP=$(kubectl get svc frontend-service -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "localhost")
-          curl -f http://${FRONTEND_IP}/health || echo "Warning: Health check endpoint may not be ready yet"
-          echo "Deployment completed, please verify service health manually if there were warnings" 
+          echo "Waiting for ingress to be ready..."
+          sleep 60
+          FRONTEND_IP=$(kubectl get svc -n ${{ env.NAMESPACE }} frontend-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "not-found")
+          if [ "$FRONTEND_IP" = "not-found" ]; then
+            echo "::error::Could not get frontend IP. Health check failed."
+            exit 1
+          fi
+          echo "Ingress IP found: $FRONTEND_IP"
+          curl -f http://$FRONTEND_IP/api/health || (echo "Health check failed for API Gateway" && exit 1)
+          echo "All services appear to be healthy!" 
