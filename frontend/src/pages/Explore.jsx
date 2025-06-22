@@ -48,7 +48,7 @@ export default function Explore() {
   // Load initial pins
   useEffect(() => {
     loadMorePins()
-  }, [])
+  }, [loadMorePins])
 
   // Handle category change
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function Explore() {
     setPage(0)
     setHasMore(true)
     loadMorePins(true)
-  }, [activeCategory])
+  }, [activeCategory, loadMorePins])
 
   // Load more pins function
   const loadMorePins = useCallback(

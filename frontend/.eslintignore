@@ -1,0 +1,12 @@
+# Build outputs
+dist/
+build/
+k8s-deploy/
+**/k8s-deploy/**
+**/dist/**
+**/build/**
+**/node_modules/**
+
+# Generated files
+*.min.js
+*.bundle.js 

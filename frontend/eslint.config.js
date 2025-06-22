@@ -9,7 +9,7 @@ const cleanedBrowserGlobals = Object.fromEntries(
 )
 
 export default [
-  { ignores: ["dist"] },
+  { ignores: ["dist", "k8s-deploy/"] },
   {
     files: ["**/*.{js,jsx}"],
     languageOptions: {
