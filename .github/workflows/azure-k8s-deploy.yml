@@ -12,6 +12,9 @@ env:
   NAMESPACE: staging
   AZURE_RESOURCE_GROUP: inspira-project
   AKS_CLUSTER_NAME: inspira-aks
+  AZURE_CLIENT_ID: "458f1fe9-06b7-4d9d-9509-508010286d59"
+  AZURE_TENANT_ID: "c66b6765-b794-4a2b-84ed-845b341c086a"
+  AZURE_SUBSCRIPTION_ID: "0e46a8f2-8dd8-4c4e-841f-94a20add816d"
 
 jobs:
   deploy:
@@ -23,7 +26,11 @@ jobs:
       - name: Azure login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          enable-AzPSSession: false
       
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
