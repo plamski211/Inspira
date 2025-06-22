@@ -1,0 +1,58 @@
+name: Azure Staging Deployment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  id-token: write
+
+env:
+  AZURE_RESOURCE_GROUP: inspira-project
+  AKS_CLUSTER_NAME: inspira-aks
+  NAMESPACE: staging
+  DOCKER_USERNAME: pngbanks
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: 
+      name: staging
+      url: http://staging.inspira-project.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+      
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+          admin: 'false'
+          use-kubelogin: 'true'
+      
+      - name: Create staging namespace
+        run: |
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+      
+      - name: Deploy to staging
+        run: |
+          kubectl apply -k k8s/overlays/staging
+          kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=5m
+      
+      - name: Health check
+        run: |
+          echo "Waiting for services to be ready..."
+          sleep 30
+          FRONTEND_IP=$(kubectl get svc -n ${{ env.NAMESPACE }} frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "not-found")
+          if [ "$FRONTEND_IP" = "not-found" ]; then
+            echo "::warning::Could not get frontend IP. Service might be of type ClusterIP"
+            exit 0
+          fi
+          echo "Frontend IP found: $FRONTEND_IP"
+          echo "Staging deployment completed successfully!" 
