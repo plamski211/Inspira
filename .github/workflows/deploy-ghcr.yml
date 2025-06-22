@@ -1,0 +1,130 @@
+name: Deploy from GitHub Container Registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: 'Image tag to deploy (default: latest)'
+        required: false
+        default: 'latest'
+
+permissions:
+  contents: read
+  packages: read
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: ${{ github.repository_owner }}
+  NAMESPACE: microservices
+  IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ secrets.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
+      
+      - name: Create GitHub Container Registry pull secret
+        run: |
+          # Create namespace if it doesn't exist
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Create or update the GitHub Container Registry pull secret
+          kubectl create secret docker-registry github-container-registry \
+            --namespace ${{ env.NAMESPACE }} \
+            --docker-server=${{ env.REGISTRY }} \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+      
+      - name: Deploy services
+        run: |
+          # Create temporary deployment files with updated image references
+          mkdir -p k8s-temp
+          
+          # Update and apply each service deployment
+          for service in frontend api-gateway user-service content-service media-service; do
+            echo "Deploying $service..."
+            
+            # Find the deployment file
+            if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+              deployment_file=$(find k8s/overlays/prod -name "$service-deployment.yaml" -type f)
+            else
+              deployment_file=$(find k8s/overlays/staging -name "$service-deployment.yaml" -type f)
+            fi
+            
+            if [ -z "$deployment_file" ]; then
+              echo "Warning: Deployment file for $service not found, skipping"
+              continue
+            fi
+            
+            # Create a copy with updated image reference
+            cp $deployment_file k8s-temp/$service-deployment.yaml
+            
+            # Update the image reference to use GitHub Container Registry
+            sed -i "s|image:.*$service:.*|image: ${{ env.REGISTRY }}/${{ env.OWNER }}/$service:${{ env.IMAGE_TAG }}|g" k8s-temp/$service-deployment.yaml
+            
+            # Add imagePullSecrets if not present
+            if ! grep -q "imagePullSecrets" k8s-temp/$service-deployment.yaml; then
+              sed -i '/containers:/i \      imagePullSecrets:\n      - name: github-container-registry' k8s-temp/$service-deployment.yaml
+            fi
+            
+            # Apply the deployment
+            kubectl apply -f k8s-temp/$service-deployment.yaml
+          done
+      
+      - name: Wait for deployments to be ready
+        run: |
+          for service in frontend api-gateway user-service content-service media-service; do
+            echo "Waiting for $service deployment to be ready..."
+            kubectl rollout status deployment/$service -n ${{ env.NAMESPACE }} --timeout=300s || echo "$service deployment not found or timed out"
+          done
+      
+      - name: Get service endpoints
+        run: |
+          echo "Checking service endpoints..."
+          
+          # Get ingress IP if available
+          INGRESS_IP=$(kubectl get ingress -n ${{ env.NAMESPACE }} -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "not-found")
+          if [ "$INGRESS_IP" != "not-found" ]; then
+            echo "Ingress IP: $INGRESS_IP"
+          else
+            echo "No ingress found"
+          fi
+          
+          # Get frontend service IP if available
+          FRONTEND_IP=$(kubectl get svc frontend -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "not-found")
+          if [ "$FRONTEND_IP" != "not-found" ]; then
+            echo "Frontend service IP: $FRONTEND_IP"
+          else
+            echo "Frontend service IP not found or not a LoadBalancer"
+          fi
+          
+          # List all pods
+          echo "Pods status:"
+          kubectl get pods -n ${{ env.NAMESPACE }} 
