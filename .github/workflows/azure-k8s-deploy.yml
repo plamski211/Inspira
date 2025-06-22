@@ -44,13 +44,19 @@ jobs:
       
       - name: Create namespace
         run: |
-          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          echo "Creating namespace: ${{ env.NAMESPACE }}"
+          kubectl create namespace ${{ env.NAMESPACE }} || true
+          kubectl get namespace ${{ env.NAMESPACE }}
       
+      - name: Apply namespace.yaml first
+        run: |
+          kubectl apply -f k8s/overlays/staging/namespace.yaml
+          
       - name: Deploy to AKS
-        uses: azure/k8s-deploy@v4
-        with:
-          namespace: ${{ env.NAMESPACE }}
-          manifests: |
-            k8s/overlays/staging/frontend-deployment.yaml
-            k8s/overlays/staging/nginx-config.yaml
-          strategy: none 
+        run: |
+          echo "Deploying frontend and nginx config..."
+          kubectl apply -f k8s/overlays/staging/frontend-deployment.yaml
+          kubectl apply -f k8s/overlays/staging/nginx-config.yaml
+          
+          echo "Waiting for deployment to complete..."
+          kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=300s 
