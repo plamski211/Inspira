@@ -40,7 +40,7 @@ const MasonryGrid = ({ pins, onPinVisible }) => {
     // Distribute pins among columns
     const newColumns = Array.from({ length: cols }, () => [])
 
-    pins.forEach((pin, index) => {
+    pins.forEach((pin) => {
       // Add to the shortest column for balanced layout
       const shortestColumnIndex = newColumns
         .map((column, i) => ({
