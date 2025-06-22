@@ -1,46 +1,55 @@
 # Setting Up GitHub Secrets for CI/CD
 
-This document explains how to set up the required GitHub Secrets for the CI/CD pipelines to work correctly.
+This guide explains how to set up the required secrets for the CI/CD pipeline, particularly for Docker Hub authentication.
 
 ## Docker Hub Authentication
 
-The CI/CD pipelines use Docker Hub to store and retrieve container images. The workflows are currently configured to use the username `pngbanks`. You need to set up the following secret:
+### Required Secrets
 
-1. **DOCKER_PASSWORD**: Your Docker Hub account password or access token (recommended)
+1. `DOCKERHUB_USERNAME`: Your Docker Hub username
+2. `DOCKERHUB_TOKEN`: A Docker Hub access token (not your password)
 
-### IMPORTANT: Docker Hub Account Access
+### Steps to Create a Docker Hub Access Token
 
-You have two options:
-1. Use the existing `pngbanks` account (you need the password)
-2. Change the username in all workflow files to your own Docker Hub username
+1. Log in to [Docker Hub](https://hub.docker.com)
+2. Go to Account Settings > Security
+3. Click "New Access Token"
+4. Give it a description (e.g., "GitHub CI/CD")
+5. Copy the token immediately (it won't be shown again)
 
-### Steps to create a Docker Hub access token (recommended):
+### Adding Secrets to GitHub
 
-1. Log in to your Docker Hub account at https://hub.docker.com/
-2. Click on your username in the top right corner and select "Account Settings"
-3. In the left sidebar, click on "Security"
-4. Under "Access Tokens", click "New Access Token"
-5. Give it a name like "GitHub Actions" and select the appropriate permissions (Read & Write)
-6. Click "Generate" and copy the token that is displayed
-
-### Steps to add the secret to GitHub:
-
-1. Go to your GitHub repository
+1. Go to your repository on GitHub
 2. Click on "Settings" tab
-3. In the left sidebar, click on "Secrets and variables" → "Actions"
+3. In the left sidebar, click on "Secrets and variables" > "Actions"
 4. Click "New repository secret"
-5. Name: `DOCKER_PASSWORD`
-6. Value: Paste your Docker Hub password or access token
-7. Click "Add secret"
+5. Add both secrets:
+   - Name: `DOCKERHUB_USERNAME`
+   - Value: Your Docker Hub username
+   
+   Then:
+   - Name: `DOCKERHUB_TOKEN`
+   - Value: The access token you created
 
-## Troubleshooting Docker Hub Authentication
+### Verifying Secrets
 
-If you see "unauthorized: incorrect username or password" errors:
+1. After adding the secrets, they should appear in the list with their names (values will be hidden)
+2. The CI/CD pipeline will automatically use these secrets for Docker Hub authentication
+3. You can verify the secrets are working by checking the "Debug Docker Hub Credentials" step in the workflow runs
 
-1. Verify your Docker Hub credentials manually by logging in on your local machine
-2. Make sure you've added the correct password/token to GitHub Secrets
-3. If using your own account, ensure you've updated all workflow files with your username
-4. Try creating a new access token with full permissions instead of using your password
+### Troubleshooting
+
+If you see "Error: Username and password required":
+1. Double-check that both secrets are added correctly
+2. Ensure the secret names match exactly: `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`
+3. Try creating a new access token in Docker Hub and updating the `DOCKERHUB_TOKEN` secret
+
+## Security Notes
+
+- Never commit secrets directly to the repository
+- Always use GitHub Secrets for sensitive information
+- Regularly rotate your Docker Hub access tokens
+- Use tokens with minimal required permissions
 
 ## Azure Authentication
 
