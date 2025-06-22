@@ -15,9 +15,31 @@ spec:
     spec:
       containers:
       - name: content-service
-        image: nginx:alpine
+        image: ghcr.io/plamennyagolov/inspira/content-service:latest
         ports:
-        - containerPort: 80
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 150m
+            memory: 256Mi
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:postgresql://postgres-content:5432/content_db"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: postgres-content-secret
+              key: username
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-content-secret
+              key: password
         volumeMounts:
         - name: health-endpoint
           mountPath: /usr/share/nginx/html/health.html

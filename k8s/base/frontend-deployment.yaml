@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: default
+  namespace: microservices
 spec:
   replicas: 1
   selector:
@@ -17,17 +17,17 @@ spec:
       - name: acr-auth
       containers:
       - name: frontend
-        image: ${FRONTEND_IMAGE_NAME}:${FRONTEND_IMAGE_TAG}
+        image: ghcr.io/plamennyagolov/inspira/frontend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
         resources:
-          limits:
-            cpu: "0.5"
-            memory: "512Mi"
           requests:
-            cpu: "0.2"
-            memory: "256Mi"
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
         livenessProbe:
           httpGet:
             path: /health
