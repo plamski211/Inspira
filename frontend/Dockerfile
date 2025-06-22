@@ -4,20 +4,15 @@ FROM node:18-alpine AS build
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first
 COPY package*.json ./
 
-# Clear npm cache and remove any existing node_modules
+# Install dependencies for Linux platform
 RUN npm cache clean --force && \
-    rm -rf node_modules
+    npm install --no-package-lock --platform=linux --arch=x64 && \
+    npm rebuild esbuild
 
-# Install dependencies with clean slate
-RUN npm install --no-package-lock --legacy-peer-deps
-
-# Rebuild esbuild to match versions
-RUN npm rebuild esbuild
-
-# Copy source code
+# Copy the rest of the application
 COPY . .
 
 # Create env-config.js
@@ -30,8 +25,8 @@ RUN echo "window.ENV = { \
   ENV: 'production' \
 };" > ./public/env-config.js
 
-# Build the application with increased memory limit
-RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
+# Build the application
+RUN npm run build
 
 # Stage 2: Serve with Nginx
 FROM nginx:alpine
