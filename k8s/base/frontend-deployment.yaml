@@ -13,8 +13,6 @@ spec:
       labels:
         app: frontend
     spec:
-      imagePullSecrets:
-      - name: acr-auth
       containers:
       - name: frontend
         image: ghcr.io/plamennyagolov/inspira/frontend:latest
@@ -40,20 +38,12 @@ spec:
             port: 80
           initialDelaySeconds: 5
           periodSeconds: 5
-        volumeMounts:
-        - name: env-config
-          mountPath: /usr/share/nginx/html/env-config.js
-          subPath: env-config.js
-      volumes:
-      - name: env-config
-        configMap:
-          name: frontend-config
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend
-  namespace: default
+  namespace: microservices
 spec:
   selector:
     app: frontend
@@ -61,21 +51,3 @@ spec:
   - port: 80
     targetPort: 80
   type: LoadBalancer
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: frontend-config
-  namespace: default
-data:
-  env-config.js: |
-    // Environment configuration
-    window.ENV = {
-      API_URL: '/api',
-      AUTH0_DOMAIN: 'dev-i9j8l4xe.us.auth0.com',
-      AUTH0_CLIENT_ID: 'JBfJJE07F7yrWTPq7nZ04WO4XdqzPvOa',
-      AUTH0_AUDIENCE: 'https://api.inspira.com',
-      AUTH0_REDIRECT_URI: window.location.origin,
-      ENV: 'production'
-    };
-    console.log('Environment config loaded:', window.ENV);
