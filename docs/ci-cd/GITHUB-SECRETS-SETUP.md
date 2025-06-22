@@ -4,11 +4,17 @@ This document explains how to set up the required GitHub Secrets for the CI/CD p
 
 ## Docker Hub Authentication
 
-The CI/CD pipelines use Docker Hub to store and retrieve container images. You need to set up the following secrets:
+The CI/CD pipelines use Docker Hub to store and retrieve container images. The workflows are currently configured to use the username `pngbanks`. You need to set up the following secret:
 
 1. **DOCKER_PASSWORD**: Your Docker Hub account password or access token (recommended)
 
-### Steps to create a Docker Hub access token:
+### IMPORTANT: Docker Hub Account Access
+
+You have two options:
+1. Use the existing `pngbanks` account (you need the password)
+2. Change the username in all workflow files to your own Docker Hub username
+
+### Steps to create a Docker Hub access token (recommended):
 
 1. Log in to your Docker Hub account at https://hub.docker.com/
 2. Click on your username in the top right corner and select "Account Settings"
@@ -26,6 +32,15 @@ The CI/CD pipelines use Docker Hub to store and retrieve container images. You n
 5. Name: `DOCKER_PASSWORD`
 6. Value: Paste your Docker Hub password or access token
 7. Click "Add secret"
+
+## Troubleshooting Docker Hub Authentication
+
+If you see "unauthorized: incorrect username or password" errors:
+
+1. Verify your Docker Hub credentials manually by logging in on your local machine
+2. Make sure you've added the correct password/token to GitHub Secrets
+3. If using your own account, ensure you've updated all workflow files with your username
+4. Try creating a new access token with full permissions instead of using your password
 
 ## Azure Authentication
 

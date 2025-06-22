@@ -1,0 +1,50 @@
+name: Test Docker Hub Authentication
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: 'Docker Hub username'
+        required: true
+        default: 'pngbanks'
+      use_manual_login:
+        description: 'Try manual login as fallback'
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  test-docker-auth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Docker version
+        run: docker --version
+      
+      - name: Login to Docker Hub with Action
+        uses: docker/login-action@v2
+        with:
+          username: ${{ github.event.inputs.username }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        continue-on-error: true
+      
+      - name: Manual Docker Login
+        if: ${{ github.event.inputs.use_manual_login == 'true' }}
+        run: |
+          echo "Attempting manual login..."
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ github.event.inputs.username }} --password-stdin
+        
+      - name: Verify Docker Login
+        run: |
+          echo "Checking Docker config..."
+          if [ -f ~/.docker/config.json ]; then
+            echo "Docker config exists"
+            cat ~/.docker/config.json | grep -v auth
+          else
+            echo "Docker config does not exist"
+          fi
+          
+          echo "Testing Docker pull..."
+          docker pull hello-world
+          
+          echo "Testing Docker Hub API access..."
+          curl -s -f -L -u "${{ github.event.inputs.username }}:${{ secrets.DOCKER_PASSWORD }}" https://hub.docker.com/v2/users/login/ || echo "API login failed" 
