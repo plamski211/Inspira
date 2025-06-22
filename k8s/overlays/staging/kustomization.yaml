@@ -5,8 +5,8 @@ namespace: staging
 
 resources:
 - namespace.yaml
-- ../../base
+- nginx-config.yaml
 - frontend-deployment.yaml
 
-patchesStrategicMerge:
-- frontend-deployment.yaml 
+patches:
+- path: frontend-deployment.yaml 

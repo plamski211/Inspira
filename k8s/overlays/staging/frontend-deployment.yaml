@@ -13,13 +13,11 @@ spec:
       labels:
         app: frontend
     spec:
-      imagePullSecrets:
-      - name: acr-auth
       containers:
       - name: frontend
-        image: inspiraregistry.azurecr.io/inspira-frontend:staging
+        image: pngbanks/frontend:latest
         ports:
-        - containerPort: 4173
+        - containerPort: 80
         env:
         - name: VITE_API_BASE_URL
           value: "http://api-gateway.staging.svc.cluster.local:8000/api"
@@ -30,6 +28,14 @@ spec:
           limits:
             cpu: 200m
             memory: 256Mi
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: frontend-nginx-config
 ---
 apiVersion: v1
 kind: Service
@@ -41,5 +47,5 @@ spec:
     app: frontend
   ports:
   - port: 80
-    targetPort: 4173
+    targetPort: 80
   type: ClusterIP 
