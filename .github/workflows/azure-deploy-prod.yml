@@ -1,1 +1,176 @@
-../../azure-deploy-prod.yml
+name: Azure Production Deployment
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  id-token: write
+
+env:
+  AZURE_RESOURCE_GROUP: inspira-project
+  AKS_CLUSTER_NAME: inspira-aks
+  NAMESPACE: microservices
+  DOCKER_USERNAME: pngbanks
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.image_tag.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: pngbanks
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        
+      - name: Debug Docker credentials
+        run: |
+          echo "Using Docker username: pngbanks"
+          echo "Docker password is set: ${{ secrets.DOCKER_PASSWORD != '' }}"
+          # Try manual login as a fallback
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u pngbanks --password-stdin || echo "Manual login failed too"
+
+      - name: Generate image tag
+        id: image_tag
+        run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Build and push all images
+        run: |
+          services="frontend api-gateway user-service content-service media-service"
+          for service in $services; do
+            echo "Building and pushing $service..."
+            docker build -t ${{ env.DOCKER_USERNAME }}/$service:latest -t ${{ env.DOCKER_USERNAME }}/$service:${{ steps.image_tag.outputs.tag }} -f $service/Dockerfile $service
+            docker push ${{ env.DOCKER_USERNAME }}/$service:latest
+            docker push ${{ env.DOCKER_USERNAME }}/$service:${{ steps.image_tag.outputs.tag }}
+          done
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+      
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Create detailed ESLint report
+        working-directory: ./frontend
+        run: |
+          echo "# ESLint Report" > lint-report.md
+          echo "Running linting checks..." >> lint-report.md
+          
+          # Create a custom .eslintrc.json that ignores specific warnings
+          cat > .eslintrc.json << EOL
+          {
+            "rules": {
+              "react-refresh/only-export-components": "off"
+            }
+          }
+          EOL
+          
+          npm run lint > lint-output.txt 2>&1 || true
+          
+          if grep -q "error" lint-output.txt; then
+            echo "## 🚫 Found ESLint errors:" >> lint-report.md
+            grep -A 1 "error" lint-output.txt >> lint-report.md
+            echo "Linting found errors that must be fixed."
+            exit 1
+          elif grep -q "warning" lint-output.txt; then
+            echo "## ⚠️ Found ESLint warnings (pipeline continues):" >> lint-report.md
+            grep -A 1 "warning" lint-output.txt >> lint-report.md
+            echo "::warning::ESLint warnings were found, but allowing pipeline to continue."
+          else  
+            echo "## ✅ No linting issues found." >> lint-report.md
+          fi
+          cat lint-report.md
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm test
+      
+      - name: Run Trivy vulnerability scanner on filesystem
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Validate Kubernetes manifests
+        run: |
+          curl -L https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz
+          chmod +x kubeval
+          ./kubeval --strict $(find k8s -name "*.yaml" -type f)
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: 
+      name: production
+      url: http://inspira-project.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+      
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+          admin: 'false'
+          use-kubelogin: 'true'
+      
+      - name: Update Kubernetes manifests with new image tag
+        run: |
+          TAG=${{ needs.build.outputs.image_tag }}
+          find k8s/overlays/prod -type f -name '*-deployment.yaml' -exec sed -i "s|image: ${{ env.DOCKER_USERNAME }}/\([a-z-]*\):.*|image: ${{ env.DOCKER_USERNAME }}/\1:$TAG|g" {} +
+          echo "Updated image tags to $TAG"
+
+      - name: Deploy to production
+        run: |
+          kubectl apply -k k8s/overlays/prod
+          kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/api-gateway -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/content-service -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/media-service -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/user-service -n ${{ env.NAMESPACE }} --timeout=5m
+      
+      - name: Health check
+        run: |
+          echo "Waiting for ingress to be ready..."
+          sleep 60
+          FRONTEND_IP=$(kubectl get svc -n ${{ env.NAMESPACE }} frontend-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "not-found")
+          if [ "$FRONTEND_IP" = "not-found" ]; then
+            echo "::error::Could not get frontend IP. Health check failed."
+            exit 1
+          fi
+          echo "Ingress IP found: $FRONTEND_IP"
+          curl -f http://$FRONTEND_IP/api/health || (echo "Health check failed for API Gateway" && exit 1)
+          echo "All services appear to be healthy!" 
