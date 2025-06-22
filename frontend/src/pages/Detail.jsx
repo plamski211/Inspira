@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Heart, MessageCircle, Share2, Bookmark, Download, MoreHorizontal, ChevronLeft } from "lucide-react"
-import { motion } from "framer-motion"
 
 export default function Detail() {
   const { id } = useParams()
@@ -148,12 +147,7 @@ export default function Detail() {
       </Link>
 
       <div className="max-w-screen-xl mx-auto px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl overflow-hidden shadow-xl"
-        >
+        <div className="bg-white rounded-2xl overflow-hidden shadow-xl">
           <div className="flex flex-col md:flex-row">
             {/* Pin Image */}
             <div className="md:w-3/5 bg-gray-100">
@@ -295,7 +289,7 @@ export default function Detail() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Related Pins */}
         <div className="mt-16">

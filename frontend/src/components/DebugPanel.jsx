@@ -6,8 +6,6 @@ import NetworkTest from './NetworkTest';
 
 export default function DebugPanel() {
   const [isOpen, setIsOpen] = useState(false);
-  const [debugInfo, setDebugInfo] = useState({});
-  const [loading, setLoading] = useState(false);
   const { isAuthenticated, user, profile, error, token, isLoading } = useAuth();
   const [jwtDebug, setJwtDebug] = useState({});
   const [dbDebug, setDbDebug] = useState({});
@@ -15,7 +13,7 @@ export default function DebugPanel() {
   const [expandSection, setExpandSection] = useState("auth");
 
   const fetchDebugInfo = async () => {
-    setLoading(true);
+    const isLoading = true;
     try {
       const jwt = await userApi.debugJwt();
       setJwtDebug(jwt || {});
@@ -35,8 +33,6 @@ export default function DebugPanel() {
       setTestProfile(testP || {});
     } catch (err) {
       console.error("Failed to create test profile:", err);
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -10,7 +10,6 @@ export default function Navbar({ scrolled }) {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { loginWithRedirect, logout, isAuthenticated, user } = useAuth0();
-  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     const createUserProfile = async () => {
@@ -36,7 +35,6 @@ export default function Navbar({ scrolled }) {
         console.log('Profile creation successful:', profileData);
         
         localStorage.setItem('userProfile', JSON.stringify(profileData));
-        setProfile(profileData);
       } catch (error) {
         console.error('Failed to create profile:', error);
       }

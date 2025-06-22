@@ -4,7 +4,7 @@ import { useRef, useEffect, useState, useCallback, memo } from "react"
 import { useInView } from "react-intersection-observer"
 import PinCard from "./PinCard"
 
-const MasonryGrid = ({ pins, onPinVisible, columnCount = 5 }) => {
+const MasonryGrid = ({ pins, onPinVisible }) => {
   const gridRef = useRef(null)
   const [columns, setColumns] = useState([])
   const [visibleItems, setVisibleItems] = useState(new Set())

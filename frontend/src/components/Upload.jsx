@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { X, UploadIcon, Tag } from "lucide-react"
-import { motion } from "framer-motion"
 
 export default function Upload() {
   const navigate = useNavigate()
@@ -105,12 +104,7 @@ export default function Upload() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-xl overflow-hidden"
-        >
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="p-6 border-b border-gray-100">
             <h1 className="text-2xl font-bold text-center">Create Pin</h1>
           </div>
@@ -277,7 +271,7 @@ export default function Upload() {
               </button>
             </div>
           </form>
-        </motion.div>
+        </div>
       </div>
     </div>
   )

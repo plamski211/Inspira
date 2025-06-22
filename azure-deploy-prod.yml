@@ -69,29 +69,26 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Create dummy .eslintignore if it doesn't exist
-        run: |
-          if [ ! -f frontend/.eslintignore ]; then
-            echo "# Build outputs" > frontend/.eslintignore
-            echo "dist/" >> frontend/.eslintignore
-            echo "build/" >> frontend/.eslintignore
-            echo "k8s-deploy/" >> frontend/.eslintignore
-            echo "**/k8s-deploy/**" >> frontend/.eslintignore
-            echo "**/dist/**" >> frontend/.eslintignore
-            echo "**/build/**" >> frontend/.eslintignore
-            echo "**/node_modules/**" >> frontend/.eslintignore
-          fi
-
-      - name: Run frontend linting
+      - name: Create detailed ESLint report
         working-directory: ./frontend
         run: |
-          # Run ESLint but allow warnings (exit code 1) to pass
-          npm run lint || if [ $? -eq 1 ]; then 
-            echo "Linting has warnings but we'll proceed"
-            exit 0
-          else 
-            exit $?
+          echo "# ESLint Report" > lint-report.md
+          echo "Running linting checks..." >> lint-report.md
+          npm run lint > lint-output.txt 2>&1 || true
+          
+          if grep -q "error" lint-output.txt; then
+            echo "## 🚫 Found ESLint errors:" >> lint-report.md
+            grep -A 1 "error" lint-output.txt >> lint-report.md
+            echo "Linting found errors that must be fixed."
+            exit 1
+          elif grep -q "warning" lint-output.txt; then
+            echo "## ⚠️ Found ESLint warnings (pipeline continues):" >> lint-report.md
+            grep -A 1 "warning" lint-output.txt >> lint-report.md
+            echo "::warning::ESLint warnings were found, but allowing pipeline to continue."
+          else  
+            echo "## ✅ No linting issues found." >> lint-report.md
           fi
+          cat lint-report.md
 
       - name: Run frontend tests
         working-directory: ./frontend

@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { motion } from "framer-motion"
 
 export default function FeaturedCategories({ categories }) {
   return (
@@ -24,11 +23,7 @@ function CategoryCard({ category, index }) {
   const [isHovered, setIsHovered] = useState(false)
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-    >
+    <div className="animate-fadeIn">
       <Link
         to={`/explore?category=${category.id}`}
         className="block relative rounded-xl overflow-hidden aspect-square group"
@@ -62,6 +57,6 @@ function CategoryCard({ category, index }) {
           </p>
         </div>
       </Link>
-    </motion.div>
+    </div>
   )
 }
