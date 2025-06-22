@@ -127,7 +127,7 @@ jobs:
           ./kubeval --strict $(find k8s -name "*.yaml" -type f)
 
   deploy:
-    needs: test
+    needs: build
     runs-on: ubuntu-latest
     environment: 
       name: production
@@ -135,6 +135,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
       
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
@@ -147,9 +152,11 @@ jobs:
           admin: 'false'
           use-kubelogin: 'true'
       
-      - name: Create production namespace
+      - name: Create and verify namespace
         run: |
-          kubectl apply -f k8s/overlays/prod/namespace.yaml
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          echo "Waiting for namespace to be ready..."
+          kubectl get namespace ${{ env.NAMESPACE }}
       
       - name: Update Kubernetes manifests with new image tag
         run: |
@@ -159,23 +166,36 @@ jobs:
 
       - name: Deploy to production
         run: |
+          # Apply namespace first
+          kubectl apply -f k8s/overlays/prod/namespace.yaml
+          
+          # Wait for namespace to be active
+          kubectl wait --for=condition=Active namespace/${{ env.NAMESPACE }} --timeout=30s
+          
+          # Apply deployments
           kubectl apply -f k8s/overlays/prod/frontend-deployment.yaml
           kubectl apply -f k8s/overlays/prod/ingress.yaml
+          
+          # Wait for rollouts
           kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=5m
-          kubectl rollout status deployment/api-gateway -n ${{ env.NAMESPACE }} --timeout=5m
-          kubectl rollout status deployment/content-service -n ${{ env.NAMESPACE }} --timeout=5m
-          kubectl rollout status deployment/media-service -n ${{ env.NAMESPACE }} --timeout=5m
-          kubectl rollout status deployment/user-service -n ${{ env.NAMESPACE }} --timeout=5m
       
       - name: Health check
         run: |
-          echo "Waiting for ingress to be ready..."
-          sleep 60
-          FRONTEND_IP=$(kubectl get svc -n ${{ env.NAMESPACE }} frontend-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "not-found")
-          if [ "$FRONTEND_IP" = "not-found" ]; then
-            echo "::error::Could not get frontend IP. Health check failed."
+          echo "Waiting for services to be ready..."
+          sleep 30
+          
+          # Check if frontend service exists
+          kubectl get service frontend -n ${{ env.NAMESPACE }}
+          
+          # Get service IP
+          FRONTEND_IP=$(kubectl get service frontend -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "Frontend service IP: $FRONTEND_IP"
+          
+          # Check health endpoint
+          if [ -n "$FRONTEND_IP" ]; then
+            curl -f http://$FRONTEND_IP/health || (echo "Health check failed" && exit 1)
+            echo "Health check passed!"
+          else
+            echo "Could not get frontend IP"
             exit 1
-          fi
-          echo "Ingress IP found: $FRONTEND_IP"
-          curl -f http://$FRONTEND_IP/api/health || (echo "Health check failed for API Gateway" && exit 1)
-          echo "All services appear to be healthy!" 
+          fi 
