@@ -118,8 +118,8 @@ jobs:
       - name: Login to Azure Container Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ secrets.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.ACR_USERNAME }}
+          registry: inspiraregistry20250617.azurecr.io
+          username: inspiraregistry20250617
           password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and push Frontend

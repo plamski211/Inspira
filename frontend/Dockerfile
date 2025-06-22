@@ -1,3 +1,4 @@
+# Build stage
 FROM node:18-alpine AS build
 
 # Set working directory
@@ -6,10 +7,15 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with fallbacks
-RUN npm install --no-package-lock --legacy-peer-deps || \
-    npm install --no-package-lock || \
-    npm install --force
+# Clear npm cache and remove any existing node_modules
+RUN npm cache clean --force && \
+    rm -rf node_modules
+
+# Install dependencies with clean slate
+RUN npm install --no-package-lock --legacy-peer-deps
+
+# Rebuild esbuild to match versions
+RUN npm rebuild esbuild
 
 # Copy source code
 COPY . .
@@ -24,8 +30,8 @@ RUN echo "window.ENV = { \
   ENV: 'production' \
 };" > ./public/env-config.js
 
-# Build the application
-RUN npm run build
+# Build the application with increased memory limit
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Stage 2: Serve with Nginx
 FROM nginx:alpine

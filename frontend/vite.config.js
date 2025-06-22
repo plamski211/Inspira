@@ -25,10 +25,10 @@ export default defineConfig({
     port: 4173,
     proxy: {
       '/api': {
-        target: 'http://user-service:8080', // The target is the user-service container
+        target: 'http://user-service:8080',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path // Keep the /api prefix since the backend expects it
+        rewrite: (path) => path
       },
     },
   },
@@ -47,6 +47,9 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
+    outDir: 'dist',
+    assetsDir: 'assets',
+    emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -55,6 +58,20 @@ export default defineConfig({
         },
       },
     },
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    },
+    target: 'es2015',
+    minify: 'esbuild',
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'es2015',
+      supported: { 
+        'top-level-await': true 
+      },
+    }
   },
   css: {
     postcss: "./postcss.config.js",
