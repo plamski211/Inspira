@@ -14,17 +14,11 @@ env:
   AKS_CLUSTER_NAME: inspira-aks
 
 jobs:
-  deploy:
+  setup-namespace:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
-      - name: Debug information
-        run: |
-          echo "GitHub repository: ${{ github.repository }}"
-          echo "GitHub ref: ${{ github.ref }}"
-          echo "GitHub actor: ${{ github.actor }}"
       
       - name: Azure login
         uses: azure/login@v1
@@ -42,21 +36,67 @@ jobs:
           admin: 'false'
           use-kubelogin: 'true'
       
-      - name: Create namespace
+      - name: Verify and create namespace
         run: |
+          echo "Current namespaces:"
+          kubectl get namespaces
+          
           echo "Creating namespace: ${{ env.NAMESPACE }}"
           kubectl create namespace ${{ env.NAMESPACE }} || true
-          kubectl get namespace ${{ env.NAMESPACE }}
+          
+          echo "Verifying namespace creation:"
+          kubectl get namespace ${{ env.NAMESPACE }} -o yaml
+          
+          if ! kubectl get namespace ${{ env.NAMESPACE }}; then
+            echo "Failed to create namespace"
+            exit 1
+          fi
+
+  deploy:
+    needs: setup-namespace
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
       
-      - name: Apply namespace.yaml first
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+      
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+          admin: 'false'
+          use-kubelogin: 'true'
+      
+      - name: Deploy nginx config
         run: |
-          kubectl apply -f k8s/overlays/staging/namespace.yaml
-          
-      - name: Deploy to AKS
+          echo "Deploying nginx config..."
+          kubectl apply -f k8s/overlays/staging/nginx-config.yaml -n ${{ env.NAMESPACE }}
+      
+      - name: Deploy frontend
         run: |
-          echo "Deploying frontend and nginx config..."
-          kubectl apply -f k8s/overlays/staging/frontend-deployment.yaml
-          kubectl apply -f k8s/overlays/staging/nginx-config.yaml
+          echo "Deploying frontend..."
+          kubectl apply -f k8s/overlays/staging/frontend-deployment.yaml -n ${{ env.NAMESPACE }}
+      
+      - name: Wait for deployment
+        run: |
+          echo "Waiting for frontend deployment to complete..."
+          kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=300s
+      
+      - name: Verify deployment
+        run: |
+          echo "Verifying deployment..."
+          kubectl get all -n ${{ env.NAMESPACE }}
           
-          echo "Waiting for deployment to complete..."
-          kubectl rollout status deployment/frontend -n ${{ env.NAMESPACE }} --timeout=300s 
+          echo "Checking frontend pod logs..."
+          FRONTEND_POD=$(kubectl get pod -n ${{ env.NAMESPACE }} -l app=frontend -o jsonpath="{.items[0].metadata.name}")
+          if [ -n "$FRONTEND_POD" ]; then
+            kubectl logs -n ${{ env.NAMESPACE }} $FRONTEND_POD --tail=50
+          fi 
