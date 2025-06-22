@@ -144,7 +144,7 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: '{"clientId":"7f35a0cc-d20c-4fe8-a7bf-c28c38332236","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"0e46a8f2-8dd8-4c4e-841f-94a20add816d","tenantId":"c66b6765-b794-4a2b-84ed-845b341c086a"}'
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Set AKS context
         uses: azure/aks-set-context@v3
@@ -174,7 +174,7 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: '{"clientId":"7f35a0cc-d20c-4fe8-a7bf-c28c38332236","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"0e46a8f2-8dd8-4c4e-841f-94a20add816d","tenantId":"c66b6765-b794-4a2b-84ed-845b341c086a"}'
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Set AKS context
         uses: azure/aks-set-context@v3
