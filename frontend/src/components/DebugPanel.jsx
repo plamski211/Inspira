@@ -13,7 +13,6 @@ export default function DebugPanel() {
   const [expandSection, setExpandSection] = useState("auth");
 
   const fetchDebugInfo = async () => {
-    const isLoading = true;
     try {
       const jwt = await userApi.debugJwt();
       setJwtDebug(jwt || {});

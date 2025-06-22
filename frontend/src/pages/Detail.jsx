@@ -205,7 +205,9 @@ export default function Detail() {
               {/* Stats */}
               <div className="flex items-center justify-between mb-6 text-sm text-gray-500">
                 <div className="flex items-center">
-                  <Heart className={`h-4 w-4 mr-1 ${liked ? "fill-red-500 text-red-500" : ""}`} />
+                  <button onClick={handleLike}>
+                    <Heart className={`h-4 w-4 mr-1 ${liked ? "fill-red-500 text-red-500" : ""}`} />
+                  </button>
                   <span>{pin.likes.toLocaleString()} likes</span>
                 </div>
                 <div className="flex items-center">

@@ -21,7 +21,8 @@ class IntersectionObserver {
   }
 }
 
-global.IntersectionObserver = IntersectionObserver;
+// Use globalThis instead of global to be compatible with ESLint
+globalThis.IntersectionObserver = IntersectionObserver;
 
 // Mock Auth0
 vi.mock('@auth0/auth0-react', () => ({

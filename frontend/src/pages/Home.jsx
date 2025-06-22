@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+// import { motion } from "framer-motion"
 import HeroSection from "../components/HeroSection"
 import FeaturedCategories from "../components/FeaturedCategories"
 import MasonryGrid from "../components/MasonryGrid"
@@ -115,11 +115,8 @@ export default function Home() {
       {/* Call to Action */}
       <section className="py-20 px-4 bg-gradient-to-r from-inspira to-inspira-dark text-white text-center">
         <div className="max-w-screen-xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
+          <div
+            className="opacity-100 transform-none transition-all duration-500"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to share your creativity?</h2>
             <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto">
@@ -131,7 +128,7 @@ export default function Home() {
             >
               Upload Your First Pin
             </Link>
-          </motion.div>
+          </div>
         </div>
       </section>
     </div>

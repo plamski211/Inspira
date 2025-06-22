@@ -19,7 +19,7 @@ export default function FeaturedCategories({ categories }) {
   )
 }
 
-function CategoryCard({ category, index }) {
+function CategoryCard({ category }) {
   const [isHovered, setIsHovered] = useState(false)
 
   return (

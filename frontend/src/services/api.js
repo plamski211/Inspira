@@ -21,7 +21,9 @@ api.interceptors.request.use(
         try {
           const parsed = JSON.parse(auth0Data);
           token = parsed.access_token;
-        } catch (_) {}
+        } catch (error) {
+          console.error("Error parsing auth0 data:", error);
+        }
       }
     }
     if (token) {

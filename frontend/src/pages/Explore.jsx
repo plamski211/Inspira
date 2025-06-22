@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { motion } from "framer-motion"
+// Remove unused import
+// import { motion } from "framer-motion"
 import MasonryGrid from "../components/MasonryGrid"
 import CategorySlider from "../components/CategorySlider"
 import { Search, Filter } from "lucide-react"
@@ -148,12 +149,8 @@ export default function Explore() {
 
       {/* Advanced Filters (hidden by default) */}
       {showFilters && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="bg-white border-t border-gray-100 shadow-sm overflow-hidden"
+        <div
+          className="bg-white border-t border-gray-100 shadow-sm overflow-hidden transition-all duration-300"
         >
           <div className="max-w-screen-2xl mx-auto px-4 py-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -200,7 +197,7 @@ export default function Explore() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Main Content */}

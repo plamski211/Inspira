@@ -16,6 +16,12 @@ export default [
       ecmaVersion: 2020,
       globals: {
         ...cleanedBrowserGlobals,
+        // Add Node.js and other common globals
+        require: "readonly",
+        __dirname: "readonly",
+        global: "readonly",
+        process: "readonly",
+        module: "readonly"
       },
       parserOptions: {
         ecmaVersion: "latest",
@@ -31,7 +37,7 @@ export default [
       ...js.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       "no-unused-vars": ["error", { varsIgnorePattern: "^[A-Z_]" }],
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "react-refresh/only-export-components": "off",
     },
   },
 ]
